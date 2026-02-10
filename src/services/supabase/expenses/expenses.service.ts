@@ -10,8 +10,8 @@ export class ExpensesService {
                 date: expense.date,
                 description: expense.description,
                 user_id: '50baa1d0-57aa-4eff-932f-228e773784eb',
-                category_id: expense.category_id,
-                subcategory_id: expense.subcategory_id,
+                ...(expense.category_id != null && { category_id: expense.category_id }),
+                ...(expense.subcategory_id != null && { subcategory_id: expense.subcategory_id }),
             })
             .select()
             .single();
@@ -44,7 +44,10 @@ export class ExpensesService {
             .eq("user_id", "50baa1d0-57aa-4eff-932f-228e773784eb");
         if (error) throw error;
 
-        const categories: string[] = data.map(expense => expense.category_id).flat();
+        const categories: string[] = data
+            .map(expense => expense.category_id)
+            .filter((id): id is string => id != null && id !== 'null' && id !== 'undefined')
+            .flat();
         const responseFiltered = [...new Set(categories)];
         return responseFiltered;
     }
@@ -105,6 +108,18 @@ export class ExpensesService {
             .from("expenses")
             .delete()
             .eq("id", id);
+        if (error) throw error;
+    }
+
+    async updateExpenseCategory(expenseId: string, categoryId: string, subcategoryId: string | null): Promise<void> {
+        const { error } = await supabase
+            .from("expenses")
+            .update({
+                category_id: categoryId,
+                subcategory_id: subcategoryId,
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", expenseId);
         if (error) throw error;
     }
 }
