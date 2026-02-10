@@ -95,7 +95,7 @@ const dot = (color = 'transparent') => ({
   },
 });
 
-const colourStyles: StylesConfig<ColourOption> = {
+export const colourStyles: StylesConfig<ColourOption> = {
   control: (styles) => ({ ...styles, backgroundColor: 'white' }),
   option: (styles, { data, isDisabled, isFocused, isSelected }) => {
     const color = chroma(data.color);
@@ -209,11 +209,6 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
       e.preventDefault();
       setSendingTransaction(true);
 
-      if(!categorySelected || !subcategorySelected){
-        onOpenNotification('error', 'Error creating transaction!', 'Category and subcategory are required');
-        setSendingTransaction(false);
-        return;
-      }
       const newTransaction = {
         type: transactionToEdit?.type ?? type,
         amount: amount ? Number(amount.replace(",",".")) :  transactionToEdit?.amount as number,
@@ -377,7 +372,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
                       value={categorySelected}
                       options={colourOptions}
                       styles={colourStyles}
-                      placeholder="Select Category"
+                      placeholder="Select a category"
                       onChange={(e) => onCategoryChange(e as ColourOption)}
                       isSearchable={false}
                       isLoading={loadingCategories}
@@ -385,13 +380,13 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
                 </div>
                 <div className="w-100">
                   <Select
-                      value={subcategorySelected}
-                      options={subcategoryOptions}
-                      styles={colourStyles}
-                      placeholder="Select Subcategory"
-                      onChange={(e) => onSubcategoryChange(e as ColourOption)}
-                      isLoading={loadingSubcategories}
-                    />
+                    value={subcategorySelected}
+                    options={subcategoryOptions}
+                    styles={colourStyles}
+                    placeholder="Select a subcategory"
+                    onChange={(e) => onSubcategoryChange(e as ColourOption)}
+                    isLoading={loadingSubcategories}
+                  />
                 </div>
               </div>
             </div>

@@ -62,6 +62,7 @@ export default function NewCategoryModal({onClose, editcategory, uptadeCategorie
                 openNotification('success', 'Category created successfully');
             }
             await delay(500);
+            onClose();
         }catch(error){
             console.error("Error creating category:", error);
             openNotification('error', 'Error creating category!');
