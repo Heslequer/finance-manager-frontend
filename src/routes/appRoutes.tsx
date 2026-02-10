@@ -13,7 +13,6 @@ export default function AppRoutes( {openNotification}: ModalProps) {
             <Route path="/" element={<Dashboard />} />
             <Route path="/categories" element={<CategoriesPage />}/>
             <Route path="/dashboard" element={<Dashboard />}/>
-            <Route path="/add-transaction" element={<Transactions onOpenNotification={(type: string, message: string, description?: string) => openNotification(type, message, description)} />}/>
             <Route path="/transactions" element={<Transactions onOpenNotification={(type: string, message: string, description?: string) => openNotification(type, message, description)} />}/>
         </Routes>
     )
