@@ -46,7 +46,24 @@
         }
     }
 }
+.transactions-container {
+    .ant-table-tbody > tr.ant-table-row-selected > td {
+        background-color: #e6f4ff; // leve tom de azul
+    }
+}
 .actions-container{
     display: flex;
     gap: 8px;
+}
+.drawer-element{
+    position: relative;
+    .close-drawer-icon{
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+}
+
+.divider{
+    height: 32px;
 }

@@ -11,42 +11,34 @@ type NewTransactionProps = {
     onSendExpenseOrIncome: (expense: Expense | null, income: Income | null) => void;
 }
 export default function NewTransaction({expense, income, onSendExpenseOrIncome}: NewTransactionProps) {
-    const [expenseCategoryColors, setExpenseCategoryColors] = useState<string[]>([]);
-    const [expenseCategoryNames, setExpenseCategoryNames] = useState<string[]>([]);
-    const [incomeCategoryColors, setIncomeCategoryColors] = useState<string[]>([]);
-    const [incomeCategoryNames, setIncomeCategoryNames] = useState<string[]>([]);
+    const [expenseCategoryColor, setExpenseCategoryColor] = useState<string>("");
+    const [expenseCategoryName, setExpenseCategoryName] = useState<string>("");
+    const [incomeCategoryColor, setIncomeCategoryColor] = useState<string>("");
+    const [incomeCategoryName, setIncomeCategoryName] = useState<string>("");
     useEffect(() => {
         const fetchData = async () => {
             const categoriesService = new CategoriesService();
-            let expenseCategoryColors: string[] = [];
-            let expenseCategoryNames: string[] = [];
-            let incomeCategoryColors: string[] = [];
-            let incomeCategoryNames: string[] = [];
-            if(expense){
-                const expenseCategoryArray: string[] = expense.category;
-                const expenseCategoryIds: string[] = expense.category_ids;
-                for(const index in expenseCategoryArray){
-                    const categoryColor: string = await categoriesService.getCategoryColorById(expenseCategoryIds[index]);
-                    expenseCategoryColors.push(categoryColor);
-                    expenseCategoryNames.push(expenseCategoryArray[index]);
-                }
+            if(expense && expense.category_id){
+                const categoryColor: string = await categoriesService.getCategoryColorById(expense.category_id);
+                const category = await categoriesService.getCategoryById(expense.category_id);
+                setExpenseCategoryColor(categoryColor);
+                setExpenseCategoryName(category.name);
+            } else {
+                setExpenseCategoryColor("");
+                setExpenseCategoryName("");
             }
-            if(income){
-                const incomeCategoryArray: string[] = income.category;
-                const incomeCategoryIds: string[] = income.category_ids;
-                for(const index in incomeCategoryArray){
-                    const categoryColor: string = await categoriesService.getCategoryColorById(incomeCategoryIds[index]);
-                    incomeCategoryColors.push(categoryColor);
-                    incomeCategoryNames.push(incomeCategoryArray[index]);
-                }
+            if(income && income.category_id){
+                const categoryColor: string = await categoriesService.getCategoryColorById(income.category_id);
+                const category = await categoriesService.getCategoryById(income.category_id);
+                setIncomeCategoryColor(categoryColor);
+                setIncomeCategoryName(category.name);
+            } else {
+                setIncomeCategoryColor("");
+                setIncomeCategoryName("");
             }
-            setIncomeCategoryNames(incomeCategoryNames);
-            setIncomeCategoryColors(incomeCategoryColors);
-            setExpenseCategoryNames(expenseCategoryNames);
-            setExpenseCategoryColors(expenseCategoryColors);
         }
         fetchData();
-    }, []);
+    }, [expense, income]);
     const handleEdit = (expense: Expense | null, income: Income | null) => {
         if(expense){
             console.log("edit expense"+ expense.date);
@@ -70,7 +62,11 @@ export default function NewTransaction({expense, income, onSendExpenseOrIncome}:
                         <td>R$ {expense.amount.toFixed(2).replace(".", ",")}</td>
                         <td className="category-names">
                             <div className="category-names-container">
-                                {expenseCategoryNames.map((category, index) =>(<span  key={category} style={{backgroundColor: `${expenseCategoryColors[index]}60`}}><p>{category.toString()}</p></span>))}
+                                {expenseCategoryName && (
+                                    <span style={{backgroundColor: `${expenseCategoryColor}60`}}>
+                                        <p>{expenseCategoryName}</p>
+                                    </span>
+                                )}
                             </div>
                         </td>
                         <td>{new Date(expense.date).toLocaleDateString("en-US", {day: "2-digit", month: "short", year: "numeric"})}</td>   
@@ -82,7 +78,11 @@ export default function NewTransaction({expense, income, onSendExpenseOrIncome}:
                         <td>R$ {income.amount.toFixed(2).replace(".", ",")}</td>
                         <td className="category-names">
                             <div className="category-names-container">
-                                {incomeCategoryNames.map((category, index) =>(<span key={category} style={{backgroundColor: `${incomeCategoryColors[index]}60`}}><p>{category.toString()}</p></span>))}
+                                {incomeCategoryName && (
+                                    <span style={{backgroundColor: `${incomeCategoryColor}60`}}>
+                                        <p>{incomeCategoryName}</p>
+                                    </span>
+                                )}
                             </div>
                         </td>
                         <td>{new Date(income.date).toLocaleDateString("en-US", {day: "2-digit", month: "short", year: "numeric"})}</td>
@@ -90,7 +90,7 @@ export default function NewTransaction({expense, income, onSendExpenseOrIncome}:
                 )}
                 <td className="edit-button-td">
                     <div className="edit-button-container">
-                        <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(expense, income)} target="_blank" />
+                        <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(expense, income)} />
                     </div>
                 </td>
             </tr>
