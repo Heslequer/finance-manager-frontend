@@ -1,0 +1,21 @@
+
+.modal-overlay{
+    position: fixed;
+    width: 100%;
+    backdrop-filter: blur(2px);
+    left: 0px;
+    z-index: 1001;
+}
+.modal-container{
+    position: relative;
+    .alert-message{
+        position: absolute;
+        top: 5px;
+        left: 32px;
+    }
+
+    .button-text{
+        font-size: 18px;
+        padding: 20px 20px;
+    }
+}
