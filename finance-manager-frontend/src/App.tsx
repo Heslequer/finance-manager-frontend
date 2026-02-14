@@ -24,7 +24,6 @@ const App:React.FC = () => {
       }}
     >
       {contextHolder}
-        {/* <button onClick={() => openNotificationWithIcon('success')}>Success</button> */}
         <BrowserRouter>
           <AppRoutes openNotification={ (type: string, message: string, description?: string) => openNotificationWithIcon(type, message, description)} />
         </BrowserRouter>
