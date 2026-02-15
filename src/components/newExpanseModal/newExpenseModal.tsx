@@ -1,16 +1,16 @@
 import './newExpenseModal.scss'
 import CurrencyInput from 'react-currency-input-field';
 import { useState, useEffect } from 'react';
-import { ExpensesService } from '../../services/supabase/expenses/expenses.service';
-import { CategoriesService } from '../../services/supabase/categories/categories.service';
-import { IncomesService } from '../../services/supabase/incomes/incomes.service';
+import { expensesApiService } from '../../services/api/expenses/expenses.api';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
+import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption } from './docs/data';
 import { DatePicker, Input, Space, Button, Alert, Radio, Upload, message, Drawer } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import Select, { type StylesConfig } from 'react-select';
-import { SubcategoriesService } from '../../services/supabase/subcategories/subcategories.service';
+import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
 import type { DataType } from '../../pages/dashboard/transactions/transactions';
 import dayjs, { Dayjs } from 'dayjs';
 import { LoadingOutlined } from '@ant-design/icons';
@@ -132,10 +132,6 @@ export const colourStyles: StylesConfig<ColourOption> = {
   singleValue: (styles, { data }) => ({ ...styles, ...dot(data.color) }),
 };
 
-const categoriesService = new CategoriesService();
-const subcategoriesService = new SubcategoriesService();
-const expensesService = new ExpensesService();
-const incomesService = new IncomesService();
 
 export default function NewExpenseModal({onClose, transactionToEdit, uptadeTransactions, onOpenNotification}: ModalProps) {
     const [amount, setAmount] = useState<string>("");
@@ -158,7 +154,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
 
     useEffect(() => {
       const fetchData = async () => {
-        const categories = await categoriesService.getCategoriesByType(transactionToEdit?.type?? type);
+        const categories = await categoriesApiService.getCategoriesByType(transactionToEdit?.type?? type);
         const colourOptions: ColourOption[] = [];
         for (const category of categories) {
           colourOptions.push({
@@ -186,7 +182,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
           if(categorySelected?.value){
             setLoadingSubcategories(true);
             console.log("categorySelected", categorySelected);
-            const subcategories = await subcategoriesService.getSubcategoryByCategoryId(categorySelected?.value);
+            const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(categorySelected?.value);
             console.log("subcategories", subcategories);
             const colourOptionsSubcategories: ColourOption[] = [];
             for (const subcategory of subcategories) {
@@ -225,27 +221,27 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
           if(newTransaction.type && type)
           {
             if(newTransaction.type === "expense"){
-              await incomesService.deleteIncome(transactionToEdit.key!);
-              await expensesService.createExpense(newTransaction);
+              await incomesApiService.deleteIncome(transactionToEdit.key!);
+              await expensesApiService.createExpense(newTransaction);
             }else{
-              await expensesService.deleteExpense(transactionToEdit.key!);
-              await incomesService.createIncome(newTransaction);
+              await expensesApiService.deleteExpense(transactionToEdit.key!);
+              await incomesApiService.createIncome(newTransaction);
             }
           }else if(newTransaction.type === "expense"){
             console.log("editing expense:", newTransaction);
-            await expensesService.editExpense(newTransaction);
+            await expensesApiService.editExpense(newTransaction);
           }else{
             console.log("editing income:", newTransaction);
-            await incomesService.editIncome(newTransaction);
+            await incomesApiService.editIncome(newTransaction);
           }
           onOpenNotification('success', 'Transaction updated successfully');
         }else{
           if(newTransaction.type === "expense"){
             console.log("creating expense:", newTransaction);
-            await expensesService.createExpense(newTransaction);
+            await expensesApiService.createExpense(newTransaction);
           }else{
             console.log("creating income:", newTransaction);
-            await incomesService.createIncome(newTransaction);
+            await incomesApiService.createIncome(newTransaction);
           }
           onOpenNotification('success', 'Transaction created successfully');
         }
@@ -274,7 +270,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
       setSubcategorySelected(null);
       setLoadingSubcategories(true);
       setCategory(colourOptionSelected);
-      const subcategories = await subcategoriesService.getSubcategoryByCategoryId(colourOptionSelected.value);
+      const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(colourOptionSelected.value);
       const colourOptionsSubcategories: ColourOption[] = [];
       for (const subcategory of subcategories) {
         colourOptionsSubcategories.push({
@@ -292,7 +288,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
       setCategorySelected(null);
       setSubcategorySelected(null);
       setType(value);
-      const categories = await categoriesService.getCategoriesByType(value);
+      const categories = await categoriesApiService.getCategoriesByType(value);
       const colourOptions: ColourOption[] = [];
       for (const category of categories) {
         colourOptions.push({

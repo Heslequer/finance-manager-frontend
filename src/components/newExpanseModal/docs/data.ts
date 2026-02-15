@@ -1,5 +1,5 @@
-import { CategoriesService } from '../../../services/supabase/categories/categories.service';
-import type { Category } from '../../../services/supabase/categories/categories.interface';
+import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import type { Category } from '../../../types/category.interface';
 
 export interface ColourOption {
   readonly value: string;
@@ -9,8 +9,7 @@ export interface ColourOption {
   readonly isDisabled?: boolean;
 }
 
-const categoriesService = new CategoriesService();
-const categories: Category[] = await categoriesService.getCategories();
+const categories: Category[] = await categoriesApiService.getCategories();
 export const colourOptions: ColourOption[] = [];
 for (const category of categories) {
   colourOptions.push({

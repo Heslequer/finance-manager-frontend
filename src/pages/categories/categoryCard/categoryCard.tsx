@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
 import './categoryCard.scss'
 import { Button, ColorPicker, Space, Input, Popconfirm, message } from 'antd';
-import type { Subcategory } from '../../../services/supabase/subcategories/subcategories.interface';
-import { SubcategoriesService } from '../../../services/supabase/subcategories/subcategories.service';
-import { CategoriesService } from '../../../services/supabase/categories/categories.service';
-import type { Category } from '../../../services/supabase/categories/categories.interface';
+import type { Subcategory } from '../../../types/subcategory.interface';
+import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
+import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import type { Category } from '../../../types/category.interface';
 import NewCategoryModal from '../../../components/newCategoryModal/newCategoryModal';
 interface CategoryCardProps {
     currentCategory: Category;
     updateCategories: () => void;
 }
 export default function CategoryCard({currentCategory, updateCategories}: CategoryCardProps) {
-    const subcategoriesService = new SubcategoriesService();
-    const categoriesService = new CategoriesService();
     const [categories, setCategories] = useState<Category[]>([]);
     const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
     const [isCreating, setIsCreating] = useState(false);
@@ -39,7 +37,7 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
                 user_id: '50baa1d0-57aa-4eff-932f-228e773784eb',
             };
             try{
-                await subcategoriesService.createSubcategory(subcategory);
+                await subcategoriesApiService.createSubcategory(subcategory);
                 await delay(500);
                 setIsCreating(false);
                 setSubcategoryInput("");
@@ -47,7 +45,7 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
                 console.error("Error creating subcategory:", err);
                 error("Error creating subcategory");
             }finally{
-                const subcategories = await subcategoriesService.getSubcategoriesByCategoryId(currentCategory.id!);
+                const subcategories = await subcategoriesApiService.getSubcategoriesByCategoryId(currentCategory.id!);
                 setSubcategories(subcategories);
             }
         }else{
@@ -61,14 +59,14 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
     const handleDeleteSubcategory = async (id: string) => {
         setIsDeleting(true);
         try{
-            await subcategoriesService.deleteSubcategory(id);
+            await subcategoriesApiService.deleteSubcategory(id);
             await delay(500);
         }catch(err){
             console.error("Error deleting subcategory:", err);
         }finally{
             setIsDeleting(false);
             setPopDeleteConfirmationFor("");
-            const subcategories = await subcategoriesService.getSubcategoriesByCategoryId(currentCategory.id!);
+            const subcategories = await subcategoriesApiService.getSubcategoriesByCategoryId(currentCategory.id!);
             setSubcategories(subcategories);
         }
     };
@@ -76,21 +74,21 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
         setIsDeleting(true);
         try{
             console.log("Deleting category:", id);
-            await categoriesService.deleteCategory(id);
+            await categoriesApiService.deleteCategory(id);
             await delay(500);
         }catch(err){
             console.error("Error deleting category:", err);
             error("Error deleting category");
         }finally{
             setIsDeleting(false);
-            const categories = await categoriesService.getCategories();
+            const categories = await categoriesApiService.getCategories();
             setCategories(categories);
             updateCategories();
         }
     };
     useEffect(() => {
         const fetchData = async () => {
-            const subcategories = await subcategoriesService.getSubcategoriesByCategoryId(currentCategory.id!);
+            const subcategories = await subcategoriesApiService.getSubcategoriesByCategoryId(currentCategory.id!);
             setSubcategories(subcategories);
         };
         fetchData();

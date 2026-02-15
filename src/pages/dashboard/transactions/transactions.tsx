@@ -1,24 +1,20 @@
 import './transactions.scss';
-import { IncomesService } from '../../../services/supabase/incomes/incomes.service';
-import { ExpensesService } from '../../../services/supabase/expenses/expenses.service';
-import { CategoriesService } from '../../../services/supabase/categories/categories.service';
-import { SubcategoriesService } from '../../../services/supabase/subcategories/subcategories.service';
-import type { Category } from '../../../services/supabase/categories/categories.interface';
+import { incomesApiService } from '../../../services/api/incomes/incomes.api';
+import { expensesApiService } from '../../../services/api/expenses/expenses.api';
+import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
+import type { Category } from '../../../types/category.interface';
 import { useState, useEffect, useRef } from 'react';
 import NewexpenseModal from '../../../components/newExpanseModal/newExpenseModal';
 import ImportOfxModal from '../../../components/importOfxModal/ImportOfxModal';
-const categoriesService = new CategoriesService();
-const subcategoriesService = new SubcategoriesService();
-import { Button, Layout, Space, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
+import { Button, DatePicker, Layout, Space, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
 import Select, { type StylesConfig } from 'react-select';
 import type { InputRef, TableColumnType, TableProps } from 'antd';
 import { Content } from 'antd/es/layout/layout';
 import Sidebar from '../../../components/sidebar/sidebar';
-const expensesService = new ExpensesService();
-const incomesService = new IncomesService();
 import { useNavigate } from 'react-router-dom';
-import type { Subcategory } from '../../../services/supabase/subcategories/subcategories.interface';
-import { CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import type { Subcategory } from '../../../types/subcategory.interface';
+import { CalendarOutlined, CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -27,6 +23,7 @@ import { Input } from 'antd';
 import { truncate } from '../../../utils/truncate';
 
 import { colourStyles } from '../../../components/newExpanseModal/newExpenseModal';
+import dayjs from 'dayjs';
 import { type ColourOption } from '../../../components/newExpanseModal/docs/data';
 
 
@@ -37,6 +34,7 @@ export interface DataType {
   category: Category[];
   subcategory: Subcategory[];
   date: string;
+  dateRaw: string;
   description: string | undefined;
 }
 type ModalProps = {
@@ -195,7 +193,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     setCategorySelected(colourOptionSelected);
     setSubcategorySelected(null);
     setCategory(colourOptionSelected);
-    const subcategories = await subcategoriesService.getSubcategoryByCategoryId(colourOptionSelected.value);
+    const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(colourOptionSelected.value);
     const colourOptionsSubcategories: ColourOption[] = [];
     for (const subcategory of subcategories) {
       colourOptionsSubcategories.push({
@@ -215,7 +213,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     setCategorySelected(null);
     setSubcategorySelected(null);
     setSubcategoryOptions([]);
-    const cats = await categoriesService.getCategoriesByType(type);
+    const cats = await categoriesApiService.getCategoriesByType(type);
     setColourOptions(
       (cats ?? []).map((c) => ({
         value: c.id!,
@@ -233,10 +231,10 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       for (const record of recordsToDelete) {
         try {
           if (record.type === 'expense') {
-            await expensesService.deleteExpense(record.key);
+            await expensesApiService.deleteExpense(record.key);
             await delay(500);
           } else if (record.type === 'income') {
-            await incomesService.deleteIncome(record.key);
+            await incomesApiService.deleteIncome(record.key);
           }
         } catch (err) {
           console.error('Error deleting transaction:', err);
@@ -265,13 +263,13 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       for (const record of recordsToUpdate) {
         try {
           if (record.type === 'expense') {
-            await expensesService.updateExpenseCategory(
+            await expensesApiService.updateExpenseCategory(
               record.key,
               categorySelected.value,
               subcategorySelected?.value ?? null
             );
           } else if (record.type === 'income') {
-            await incomesService.updateIncomeCategory(
+            await incomesApiService.updateIncomeCategory(
               record.key,
               categorySelected.value,
               subcategorySelected?.value ?? null
@@ -364,13 +362,13 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     try {
       if (record.type === 'expense') {
         setIsUpdatingCategory(true);
-        await expensesService.updateExpenseCategory(
+        await expensesApiService.updateExpenseCategory(
           record.key,
           categorySelected.value,
           subcategorySelected?.value ?? null
         );
       } else {
-        await incomesService.updateIncomeCategory(
+        await incomesApiService.updateIncomeCategory(
           record.key,
           categorySelected.value,
           subcategorySelected?.value ?? null
@@ -510,7 +508,60 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       key: 'date',
       width: 180,
       defaultSortOrder: 'descend',
-      sorter: (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      sorter: (a, b) => a.dateRaw.localeCompare(b.dateRaw),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => {
+        let range: [string, string] | undefined;
+        try {
+          const raw = selectedKeys[0];
+          range = raw ? JSON.parse(String(raw)) : undefined;
+        } catch {
+          range = undefined;
+        }
+        return (
+          <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
+            <DatePicker.RangePicker
+              value={range ? [dayjs(range[0]), dayjs(range[1])] : undefined}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  setSelectedKeys([JSON.stringify([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')])]);
+                } else {
+                  setSelectedKeys([]);
+                }
+              }}
+              style={{ marginBottom: 8, width: '100%' }}
+              allowClear
+            />
+            <Space>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => confirm()}
+                style={{ width: 70 }}
+              >
+                OK
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  clearFilters?.();
+                  confirm();
+                }}
+                style={{ width: 70 }}
+              >
+                Reset
+              </Button>
+            </Space>
+          </div>
+        );
+      },
+      filterIcon: (filtered: boolean) => (
+        <CalendarOutlined style={{ color: filtered ? '#1677ff' : undefined }} />
+      ),
+      filteredValue: filteredInfo.date || null,
+      onFilter: (value, record) => {
+        const [start, end] = JSON.parse(String(value)) as [string, string];
+        return record.dateRaw >= start && record.dateRaw <= end;
+      },
     },
     {
       title: 'Actions',
@@ -543,11 +594,11 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     setIsDeleting(true);
     try{
       if(record.type === "expense"){
-        await expensesService.deleteExpense(record.key);
+        await expensesApiService.deleteExpense(record.key);
         await delay(500);
       }
       if(record.type === "income"){
-        await incomesService.deleteIncome(record.key);
+        await incomesApiService.deleteIncome(record.key);
       }
     }catch(err){
       console.error("Error deleting transaction:", err);
@@ -562,18 +613,18 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   const fetchData = async (userId: string) => {
     // const rows: DataType[] = [];
     setIsLoadingData(true);
-    const expenses = await expensesService.getAllExpensesByUserId(userId);
-    const incomes = await incomesService.getAllIncomesByUserId(userId);
+    const expenses = await expensesApiService.getAllExpensesByUserId(userId);
+    const incomes = await incomesApiService.getAllIncomesByUserId(userId);
     const expenseRows = await Promise.all(
       expenses.map(async (expense) => {
         let category: Category | null = null;
         let subcategory: Subcategory | null = null;
         
         if (expense.category_id) {
-          category = await categoriesService.getCategoryById(expense.category_id);
+          category = await categoriesApiService.getCategoryById(expense.category_id);
         }
         if (expense.subcategory_id) {
-          subcategory = await subcategoriesService.getSubcategoryById(expense.subcategory_id);
+          subcategory = await subcategoriesApiService.getSubcategoryById(expense.subcategory_id);
         }
   
         return {
@@ -587,6 +638,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
             month: "long",
             year: "numeric",
           }),
+          dateRaw: String(expense.date).slice(0, 10),
           subcategory: subcategory ? [subcategory] : [],
         } as DataType;
       })
@@ -597,10 +649,10 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         let subcategory: Subcategory | null = null;
         
         if (income.category_id) {
-          category = await categoriesService.getCategoryById(income.category_id);
+          category = await categoriesApiService.getCategoryById(income.category_id);
         }
         if (income.subcategory_id) {
-          subcategory = await subcategoriesService.getSubcategoryById(income.subcategory_id);
+          subcategory = await subcategoriesApiService.getSubcategoryById(income.subcategory_id);
         }
   
         return {
@@ -614,6 +666,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
             month: "long",
             year: "numeric",
           }),
+          dateRaw: String(income.date).slice(0, 10),
           subcategory: subcategory ? [subcategory] : [],
         } as DataType;
       })
