@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import './newCategoryModal.scss'
-import { CategoriesService } from '../../services/supabase/categories/categories.service';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
 import { ColorPicker } from 'antd';
 import { Button, Input, Alert, Radio, notification} from 'antd';
-import type { Category } from '../../services/supabase/categories/categories.interface';
+import type { Category } from '../../types/category.interface';
 
 type ModalProps = {
     onClose: () => void;
@@ -19,7 +19,6 @@ type AlertMessage = {
 type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
 export default function NewCategoryModal({onClose, editcategory, uptadeCategories}: ModalProps) {
-    const categoriesService = new CategoriesService();
     const [categoryName, setCategoryName] = useState<string>(editcategory?.name ?? "");
     const [color, setColor] = useState<string>(editcategory?.color_hex ?? "#1677ff");
     const [type, setType] = useState<string>(editcategory?.type ?? "");
@@ -55,10 +54,10 @@ export default function NewCategoryModal({onClose, editcategory, uptadeCategorie
         };
         try{
             if(editcategory){
-                await categoriesService.updateCategory(newCategory, editcategory.id!);
+                await categoriesApiService.updateCategory(newCategory, editcategory.id!);
                 openNotification('success', 'Category updated successfully');
             }else{
-                await categoriesService.createCategory(newCategory);
+                await categoriesApiService.createCategory(newCategory);
                 openNotification('success', 'Category created successfully');
             }
             await delay(500);

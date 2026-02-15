@@ -16,47 +16,47 @@ $width-xxxs:490px;
 @mixin responsive-screen($width){
     @if $width == desktop-4k{
         @media screen and (min-width:$width-xxl){
-            //para resolução maior que 3840px
+            //for resolution greater than 3840px
             @content;
         }
     }@else if $width == desktop-2k{
         @media screen and (max-width:$width-xxl) and (min-width:$width-xl){
-            //para resolução entre 3840px e 2560px
+            //for resolution between 3840px and 2560px
             @content;
         }
     }@else if $width == desktop-fullhd{
         @media screen and (max-width:$width-xl) and (min-width:$width-l){
-            //para resolução entre 2560px e 1920px
+            //for resolution between 2560px and 1920px
             @content;
         }
     }@else if $width == desktop-1440{
         @media screen and (max-width:$width-l) and (min-width:$width-m){
-            //para resolução entre 1920px e 1440px
+            //for resolution between 1920px and 1440px
             @content;
         }
     }@else if $width == desktop-1366{
         @media screen and (max-width:$width-m) and (min-width:$width-s){
-            //para resolução entre 1440px e 1366px
+            //for resolution between 1440px and 1366px
             @content;
         }
     }@else if $width == desktop-hd{
         @media screen and (max-width:$width-s) and (min-width:$width-xs){
-            //para resolução entre 1366px e 1200px
+            //for resolution between 1366px and 1200px
             @content;
         }
     }@else if $width == tablet{
         @media screen and (max-width:$width-xs) and (min-width:$width-xxs){
-            //para resolução entre 1280px e 960px
+            //for resolution between 1280px and 960px
             @content;
         }
     }@else if $width == mobile{
         @media screen and (max-width:$width-xxs){
-            //para resolução menor que 960px
+            //for resolution smaller than 960px
             @content;
         }
     }@else if $width == small-mobile{
         @media screen and (max-width:$width-xxxs){
-            //para resolução menor que 490px
+            //for resolution smaller than 490px
             @content;
         }
     }
@@ -65,33 +65,33 @@ $width-xxxs:490px;
 @mixin responsive($breakpoint){
     @if $breakpoint == big-desktop
     {
-        //Para resolução maior que 1536px
-        @media screen and (min-width:$container-xl)//min-width vai modificar tudo que tem resolução de 1536px em diante
+        //For resolution greater than 1536px
+        @media screen and (min-width:$container-xl)//min-width will modify everything with resolution from 1536px onwards
         {
-            @content; //é aqui que vai ser aplicado o conteúdo ao chamar o mixin com o @include responsive(xl)
+            @content; //content is applied here when calling the mixin with @include responsive(xl)
         }
     }@else if $breakpoint == desktop
     {
-        //Para resolução entre 1536px e 1200px
+        //For resolution between 1536px and 1200px
         @media screen and (max-width:$container-xl) and (min-width:$container-l)   
         {
             @content;  
         }
     }@else if $breakpoint == small-desktop
     {
-        //Para resoluções entre 1200px e 900px
+        //For resolutions between 1200px and 900px
         @media screen and (max-width:$container-l) and (min-width:$container-m) 
         {
             @content;  
         }
     }@else if $breakpoint == tablet
     {
-        //Para resolução entre 900px e 600px
+        //For resolution between 900px and 600px
         @media screen and (max-width:$container-m) and (min-width:$container-s){
             @content;
         }
     }@else if $breakpoint == mobile{
-        //Para resolução menor que 600px
+        //For resolution smaller than 600px
         @media screen and (max-width:$container-s){
             @content;
         }

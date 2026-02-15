@@ -1,10 +1,10 @@
 import './sidebar.scss'
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConfigProvider, Layout, Menu, theme} from 'antd';
 import type { MenuProps } from 'antd';
-import { UnorderedListOutlined, HomeOutlined, BarChartOutlined, TagOutlined } from '@ant-design/icons';
+import { UnorderedListOutlined, HomeOutlined, BarChartOutlined, TagOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 const { Sider } = Layout;
 type SidebarProps = {
     onOpenDashboardPage: () => void;
@@ -19,12 +19,14 @@ type SidebarProps = {
   // const pages = ["/", "/dashboard", "/add-transaction", "/categories"];
 //   const navigate = useNavigate();
  
-const SIDEBAR_EXPANDED_KEY = 'sidebarExpanded';
-
 export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOpenCategoriesPage: _onOpenCategoriesPage }: SidebarProps) {
-    const [collapsed, setCollapsed] = useState(() => sessionStorage.getItem(SIDEBAR_EXPANDED_KEY) === 'true' ? false : true);
+    const [collapsed, setCollapsed] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        setCollapsed(true);
+    }, [location.pathname]);
     const {
         token: { colorBgContainer},
       } = theme.useToken();
@@ -35,12 +37,25 @@ export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOp
             icon: React.createElement(icon),
             label: items[index].label,
             onClick: () => {
-                sessionStorage.setItem(SIDEBAR_EXPANDED_KEY, 'true');
+                setCollapsed(true);
                 navigate(items[index].key);
             },
           };
         },
       );
+
+      const logoutItem: MenuProps['items'] = [
+        {
+          key: 'logout',
+          icon: React.createElement(LogoutOutlined),
+          label: 'Log out',
+          onClick: async () => {
+            setCollapsed(true);
+            await supabase.auth.signOut();
+            navigate('/login');
+          },
+        },
+      ];
     return (
         <>
           <ConfigProvider
@@ -56,22 +71,23 @@ export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOp
               className="sidebar-fixed"
               style={{ background: colorBgContainer }} 
               collapsed={collapsed} 
-              onMouseEnter={() => {
-                setCollapsed(false);
-                sessionStorage.setItem(SIDEBAR_EXPANDED_KEY, 'true');
-              }}
-              onMouseLeave={() => {
-                setCollapsed(true);
-                sessionStorage.setItem(SIDEBAR_EXPANDED_KEY, 'false');
-              }}
+              onMouseEnter={() => setCollapsed(false)}
+              onMouseLeave={() => setCollapsed(true)}
           >
-            <Menu
-                mode="inline"
-                selectedKeys={[location.pathname]}
-                defaultOpenKeys={['sub1']}
-                style={{ height: '100%', borderInlineEnd: 0, }}
-                items={items2}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Menu
+                  mode="inline"
+                  selectedKeys={[location.pathname]}
+                  defaultOpenKeys={['sub1']}
+                  style={{ flex: 1, borderInlineEnd: 0 }}
+                  items={items2}
+              />
+              <Menu
+                  mode="inline"
+                  style={{ borderInlineEnd: 0, borderTop: '1px solid rgba(5, 5, 5, 0.06)' }}
+                  items={logoutItem}
+              />
+            </div>
           </Sider>
           </ConfigProvider>
         </>

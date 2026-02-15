@@ -16,10 +16,10 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-import { IncomesService } from '../../services/supabase/incomes/incomes.service';
-import { ExpensesService } from '../../services/supabase/expenses/expenses.service';
+import { incomesApiService } from '../../services/api/incomes/incomes.api';
+import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { useEffect, useState, useMemo } from 'react';
-import { CategoriesService } from '../../services/supabase/categories/categories.service';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
 import Sidebar from '../../components/sidebar/sidebar';
 import NewIncomeModal from '../../components/newIncomeModal/newIncomeModal';
 import NewCategoryModal from '../../components/newCategoryModal/newCategoryModal';
@@ -28,25 +28,17 @@ import { useNavigate } from 'react-router-dom';
 import { Layout, TreeSelect, ConfigProvider, DatePicker, type GetProps, Button, Select } from 'antd';
 import { CloseOutlined, FilterOutlined } from '@ant-design/icons';
 import { Content } from 'antd/es/layout/layout';
-import type { Subcategory } from '../../services/supabase/subcategories/subcategories.interface';
-import { SubcategoriesService } from '../../services/supabase/subcategories/subcategories.service';
-import type { Category } from '../../services/supabase/categories/categories.interface';
+import type { Subcategory } from '../../types/subcategory.interface';
+import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
+import type { Category } from '../../types/category.interface';
 import dayjs from 'dayjs';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const incomesService = new IncomesService();
-const expensesService = new ExpensesService();
-const categoriesService = new CategoriesService();
-const subcategoriesService = new SubcategoriesService();
-
 type RangePickerProps = GetProps<typeof DatePicker.RangePicker>;
 
 const { RangePicker } = DatePicker;
-const disabledDate: RangePickerProps['disabledDate'] = (current) => {
-  // Can not select days before today and today
-  return current && current < dayjs().endOf('day');
-};
+const disabledDate: RangePickerProps['disabledDate'] = () => false; // Allow past and future dates
 
 export default function Dashboard() {
   const [totalIncomes, setTotalIncomes] = useState(0);
@@ -75,11 +67,11 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const expenseCategoryIds = await expensesService.getExpenseCategoriesIds();
+        const expenseCategoryIds = await expensesApiService.getExpenseCategoriesIds();
         const validExpenseIds = expenseCategoryIds.filter((id): id is string => id != null && id !== 'null' && id !== 'undefined');
         if (validExpenseIds.length > 0) {
-          const expenseCategories = await categoriesService.getCategoriesByIds(validExpenseIds);
-          const expenseSubcategories = await subcategoriesService.getSubcategoriesByCategoryIds(validExpenseIds);
+          const expenseCategories = await categoriesApiService.getCategoriesByIds(validExpenseIds);
+          const expenseSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validExpenseIds);
           setExpenseSubcategories(expenseSubcategories);
           setExpenseCategoriesFull(expenseCategories);
         } else {
@@ -87,11 +79,11 @@ export default function Dashboard() {
           setExpenseCategoriesFull([]);
         }
 
-        const incomeCategoryIds = await incomesService.getIncomeCategoriesIds();
+        const incomeCategoryIds = await incomesApiService.getIncomeCategoriesIds();
         const validIncomeIds = incomeCategoryIds.filter((id): id is string => id != null && id !== 'null' && id !== 'undefined');
         if (validIncomeIds.length > 0) {
-          const incomeCategories = await categoriesService.getCategoriesByIds(validIncomeIds);
-          const incomeSubcategories = await subcategoriesService.getSubcategoriesByCategoryIds(validIncomeIds);
+          const incomeCategories = await categoriesApiService.getCategoriesByIds(validIncomeIds);
+          const incomeSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validIncomeIds);
           setIncomeSubcategories(incomeSubcategories);
           setIncomeCategoriesFull(incomeCategories);
         } else {
@@ -144,8 +136,8 @@ export default function Dashboard() {
     
     // Fetch all expenses and incomes
     const [allExpenses, allIncomes] = await Promise.all([
-      expensesService.getAllExpensesByUserId(userId),
-      incomesService.getAllIncomesByUserId(userId),
+      expensesApiService.getAllExpensesByUserId(userId),
+      incomesApiService.getAllIncomesByUserId(userId),
     ]);
 
     let filteredExp: any[] = [...allExpenses];

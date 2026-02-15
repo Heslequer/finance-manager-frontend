@@ -5,14 +5,13 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
 import NewCategoryModal from '../../components/newCategoryModal/newCategoryModal';
-import type { Category } from '../../services/supabase/categories/categories.interface';
-import { CategoriesService } from '../../services/supabase/categories/categories.service';
+import type { Category } from '../../types/category.interface';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
 import CategoryCard from '../categories/categoryCard/categoryCard';
 import { Content } from 'antd/es/layout/layout';
 import { LoadingOutlined } from '@ant-design/icons';
 
 export default function CategoriesPage() {
-    const categoriesService = new CategoriesService();
     const navigate = useNavigate();
     const [showNewBankAccountModal, setShowNewBankAccountModal] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -34,7 +33,7 @@ export default function CategoriesPage() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const categories = await categoriesService.getCategories();
+                const categories = await categoriesApiService.getCategories();
                 setCategories(categories);
             } finally {
                 setIsLoading(false);
@@ -45,7 +44,7 @@ export default function CategoriesPage() {
     const updateCategories = async () => {
         setIsLoading(true);
         try {
-            const categories = await categoriesService.getCategories();
+            const categories = await categoriesApiService.getCategories();
             setCategories(categories);
             console.log("categories", categories);
         } finally {

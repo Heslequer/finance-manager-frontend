@@ -1,6 +1,6 @@
 import type { ParsedOfxTransaction } from './ofxParser.service';
-import { ExpensesService } from '../supabase/expenses/expenses.service';
-import { IncomesService } from '../supabase/incomes/incomes.service';
+import { expensesApiService } from '../api/expenses/expenses.api';
+import { incomesApiService } from '../api/incomes/incomes.api';
 
 export type OfxImportOptions = {
   expenseCategoryId?: string | null;
@@ -15,8 +15,6 @@ export type OfxImportResult = {
   errors: string[];
 };
 
-const expensesService = new ExpensesService();
-const incomesService = new IncomesService();
 
 export async function importOfxTransactions(
   transactions: ParsedOfxTransaction[],
@@ -29,7 +27,7 @@ export async function importOfxTransactions(
   for (const t of transactions) {
     try {
       if (t.isCredit) {
-        await incomesService.createIncome({
+        await incomesApiService.createIncome({
           amount: t.amount,
           date: t.date,
           description: t.description,
@@ -37,7 +35,7 @@ export async function importOfxTransactions(
           subcategory_id: options.incomeSubcategoryId ?? undefined,
         });
       } else {
-        await expensesService.createExpense({
+        await expensesApiService.createExpense({
           amount: t.amount,
           date: t.date,
           description: t.description,

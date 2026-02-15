@@ -3,10 +3,12 @@ import { Modal, Upload, Button, Table, message, Select } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { parseOfx, type ParsedOfxTransaction } from '../../services/ofx/ofxParser.service';
 import { importOfxTransactions, type OfxImportOptions } from '../../services/ofx/ofxImport.service';
-import { CategoriesService } from '../../services/supabase/categories/categories.service';
-import { SubcategoriesService } from '../../services/supabase/subcategories/subcategories.service';
-import type { Category } from '../../services/supabase/categories/categories.interface';
-import type { Subcategory } from '../../services/supabase/subcategories/subcategories.interface';
+import { expensesApiService } from '../../services/api/expenses/expenses.api';
+import { incomesApiService } from '../../services/api/incomes/incomes.api';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
+import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
+import type { Category } from '../../types/category.interface';
+import type { Subcategory } from '../../types/subcategory.interface';
 
 type ImportOfxModalProps = {
   open: boolean;
@@ -15,10 +17,20 @@ type ImportOfxModalProps = {
   onOpenNotification: (type: string, message: string, description?: string) => void;
 };
 
-const categoriesService = new CategoriesService();
-const subcategoriesService = new SubcategoriesService();
 
 const PREVIEW_MAX = 20;
+
+function buildSignature(
+  type: 'expense' | 'income',
+  description: string,
+  amount: number,
+  date: string,
+): string {
+  const desc = (description ?? '').trim();
+  const amt = Number(Number(amount).toFixed(2));
+  const dt = (date ?? '').slice(0, 10);
+  return `${type}|${desc}|${amt}|${dt}`;
+}
 
 export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotification }: ImportOfxModalProps) {
   const [parsed, setParsed] = useState<ParsedOfxTransaction[]>([]);
@@ -39,8 +51,8 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       setLoading(true);
       try {
         const [exp, inc] = await Promise.all([
-          categoriesService.getCategoriesByType('expense'),
-          categoriesService.getCategoriesByType('income'),
+          categoriesApiService.getCategoriesByType('expense'),
+          categoriesApiService.getCategoriesByType('income'),
         ]);
         setExpenseCategories(exp ?? []);
         setIncomeCategories(inc ?? []);
@@ -59,7 +71,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       setExpenseSubcategoryId(undefined);
       return;
     }
-    subcategoriesService.getSubcategoriesByCategoryId(expenseCategoryId).then((s) => {
+    subcategoriesApiService.getSubcategoriesByCategoryId(expenseCategoryId).then((s) => {
       setExpenseSubcategories(s ?? []);
       setExpenseSubcategoryId(undefined);
     });
@@ -71,7 +83,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       setIncomeSubcategoryId(undefined);
       return;
     }
-    subcategoriesService.getSubcategoriesByCategoryId(incomeCategoryId).then((s) => {
+    subcategoriesApiService.getSubcategoriesByCategoryId(incomeCategoryId).then((s) => {
       setIncomeSubcategories(s ?? []);
       setIncomeSubcategoryId(undefined);
     });
@@ -82,9 +94,41 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
     try {
       const text = await file.text();
       const list = await parseOfx(text);
-      setParsed(list);
       if (list.length === 0) {
         message.info('No transactions found in file.');
+        return false;
+      }
+
+      const [existingExpenses, existingIncomes] = await Promise.all([
+        expensesApiService.getAllExpensesByUserId(''),
+        incomesApiService.getAllIncomesByUserId(''),
+      ]);
+
+      const existingSignatures = new Set<string>();
+      for (const e of existingExpenses) {
+        existingSignatures.add(
+          buildSignature('expense', e.description ?? '', e.amount, e.date ?? ''),
+        );
+      }
+      for (const i of existingIncomes) {
+        existingSignatures.add(
+          buildSignature('income', i.description ?? '', i.amount, i.date ?? ''),
+        );
+      }
+
+      const filtered = list.filter((t) => {
+        const type = t.isCredit ? 'income' : 'expense';
+        const sig = buildSignature(type, t.description, t.amount, t.date);
+        return !existingSignatures.has(sig);
+      });
+
+      const ignored = list.length - filtered.length;
+      if (ignored > 0) {
+        message.info(`${ignored} duplicate transaction(s) ignored (already in system).`);
+      }
+      setParsed(filtered);
+      if (filtered.length === 0) {
+        message.info('All transactions from this file already exist.');
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Error reading OFX file.';
@@ -92,6 +136,14 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       onOpenNotification('error', 'Error importing OFX', msg);
     }
     return false;
+  };
+
+  const resetModalState = () => {
+    setParsed([]);
+    setExpenseCategoryId(undefined);
+    setExpenseSubcategoryId(undefined);
+    setIncomeCategoryId(undefined);
+    setIncomeSubcategoryId(undefined);
   };
 
   const handleImport = async () => {
@@ -110,6 +162,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       } else {
         onOpenNotification('success', `${imported} transactions imported successfully.`);
       }
+      resetModalState();
       onSuccess();
       onClose();
     } catch (e) {
@@ -121,11 +174,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
   };
 
   const handleClose = () => {
-    setParsed([]);
-    setExpenseCategoryId(undefined);
-    setExpenseSubcategoryId(undefined);
-    setIncomeCategoryId(undefined);
-    setIncomeSubcategoryId(undefined);
+    resetModalState();
     onClose();
   };
 

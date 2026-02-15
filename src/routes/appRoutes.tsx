@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "../pages/dashboard/dashboard";
 import CategoriesPage from "../pages/categories/categories";
 import Transactions from "../pages/dashboard/transactions/transactions";
@@ -12,6 +12,7 @@ type ModalProps = {
 export default function AppRoutes( {openNotification}: ModalProps) {
     return (
         <Routes>
+            <Route path="/" element={<Navigate to="/login" />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/" element={<Dashboard />} />
