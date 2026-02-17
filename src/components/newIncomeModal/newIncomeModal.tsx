@@ -1,10 +1,10 @@
 import './newIncomeModal.scss'
 import CurrencyInput from 'react-currency-input-field';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import React from 'react';
 import chroma from 'chroma-js';
-import { type ColourOption, colourOptions } from '../newExpanseModal/docs/data';
+import { type ColourOption, getColourOptions } from '../newExpanseModal/docs/data';
 import Select, { type StylesConfig } from 'react-select';
 import { IncomesService } from '../../services/supabase/incomes/incomes.service';
 import { DatePicker, Input, Space, Button, Alert } from 'antd';
@@ -81,9 +81,14 @@ export default function NewExpenseModal({onClose, income}: ModalProps) {
     const [date, setDate] = useState("");
     const [description, setDescription] = useState("");
     const [category, setCategory] = useState<ColourOption[]>([]);
+    const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
     const [isActive, setIsActive] = useState(false);
     const [alertMessage, setAlertMessage] = useState<AlertMessage>({message: "", type: "success"});
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        getColourOptions().then(setColourOptions);
+    }, []);
     // const [incomeDetails, setIncomeDetails] = useState<Income | null>(income);
     const handleSubmit = async (e: React.FormEvent) => {
       setIsLoading(true);

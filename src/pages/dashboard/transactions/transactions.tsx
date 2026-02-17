@@ -65,6 +65,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   const [isApplyingBulkCategory, setIsApplyingBulkCategory] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [totalCount, setTotalCount] = useState(0);
   const [areSelectsDisabled, setAreSelectsDisabled] = useState(false);
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   const navigate = useNavigate();
@@ -559,23 +560,31 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   }
   // const data: DataType[]  = []
 
-  const fetchData = async (userId: string) => {
-    // const rows: DataType[] = [];
+  const pageSizeForTable = pagination.pageSize;
+  const halfPage = Math.max(1, Math.floor(pageSizeForTable / 2));
+
+  const fetchData = async (userId: string, page: number) => {
     setIsLoadingData(true);
+<<<<<<< Updated upstream
     const expenses = await expensesService.getAllExpensesByUserId(userId);
     const incomes = await incomesService.getAllIncomesByUserId(userId);
+=======
+    const [expensesRes, incomesRes] = await Promise.all([
+      expensesApiService.getExpensesPage(userId, page, halfPage),
+      incomesApiService.getIncomesPage(userId, page, halfPage),
+    ]);
+
+>>>>>>> Stashed changes
     const expenseRows = await Promise.all(
-      expenses.map(async (expense) => {
+      expensesRes.data.map(async (expense) => {
         let category: Category | null = null;
         let subcategory: Subcategory | null = null;
-        
         if (expense.category_id) {
           category = await categoriesService.getCategoryById(expense.category_id);
         }
         if (expense.subcategory_id) {
           subcategory = await subcategoriesService.getSubcategoryById(expense.subcategory_id);
         }
-  
         return {
           key: String(expense.id),
           type: "expense",
@@ -592,17 +601,15 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       })
     );
     const incomeRows = await Promise.all(
-      incomes.map(async (income) => {
+      incomesRes.data.map(async (income) => {
         let category: Category | null = null;
         let subcategory: Subcategory | null = null;
-        
         if (income.category_id) {
           category = await categoriesService.getCategoryById(income.category_id);
         }
         if (income.subcategory_id) {
           subcategory = await subcategoriesService.getSubcategoryById(income.subcategory_id);
         }
-  
         return {
           key: String(income.id),
           type: "income",
@@ -619,15 +626,17 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       })
     );
 
-    const allRows = [...expenseRows, ...incomeRows];
+    const allRows = [...expenseRows, ...incomeRows].sort(
+      (a, b) => (b.dateRaw || '').localeCompare(a.dateRaw || '')
+    );
     setData(allRows);
+    setTotalCount(expensesRes.total + incomesRes.total);
     setIsLoadingData(false);
-  }
+  };
 
   useEffect(() => {
-    // setData([]);
-    fetchData("50baa1d0-57aa-4eff-932f-228e773784eb");
-  }, [tableKey]);
+    fetchData("50baa1d0-57aa-4eff-932f-228e773784eb", pagination.current);
+  }, [tableKey, pagination.current, pagination.pageSize]);
 
   // const showDrawer = () => {
   //   setOpenTransactionDrawer(true);
@@ -644,7 +653,6 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   // }
 
   const onChange: TableProps<DataType>['onChange'] = (paginationInfo, filters) => {
-    console.log('params', filters);
     setFilteredInfo(filters);
     if (paginationInfo) {
       setPagination({
@@ -652,7 +660,6 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         pageSize: paginationInfo.pageSize || 10,
       });
     }
-    // setSortedInfo(sorter as Sorts);
   };
   return (
     
@@ -693,12 +700,13 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                              onChange={onChange}
                              rowSelection={rowSelection}
                              loading={isLoadingData ? { indicator: <LoadingOutlined spin style={{ fontSize: 40 }} /> } : false}
-                             pagination={{
-                               current: pagination.current,
-                               pageSize: pagination.pageSize,
-                               showSizeChanger: true,
-                               showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-                             }}
+                            pagination={{
+                              current: pagination.current,
+                              pageSize: pagination.pageSize,
+                              total: totalCount,
+                              showSizeChanger: true,
+                              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                            }}
                             showSorterTooltip={{ target: 'sorter-icon' }} bordered 
                           />
                           <div className="transactions-body flex">
