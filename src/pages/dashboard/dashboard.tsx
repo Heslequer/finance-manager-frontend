@@ -43,7 +43,7 @@ const disabledDate: RangePickerProps['disabledDate'] = () => false; // Allow pas
 export default function Dashboard() {
   const [totalIncomes, setTotalIncomes] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
-  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [_totalBalance, setTotalBalance] = useState<number>(0);
   const [expenseCategoriesFull, setExpenseCategoriesFull] = useState<Category[]>([]);
   const [expenseSubcategories, setExpenseSubcategories] = useState<Subcategory[]>([]);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);

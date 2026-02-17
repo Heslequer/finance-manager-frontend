@@ -1,6 +1,5 @@
 import './categories.scss'
 import { Button, Empty, Layout, Spin, Pagination } from 'antd';
-import NewBankAccountModal from '../../components/newBankAccountModal/newBankAccountModal';
 import { useState, useEffect } from 'react';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,6 @@ import { LoadingOutlined } from '@ant-design/icons';
 
 export default function CategoriesPage() {
     const navigate = useNavigate();
-    const [showNewBankAccountModal, setShowNewBankAccountModal] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
     const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
     const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);

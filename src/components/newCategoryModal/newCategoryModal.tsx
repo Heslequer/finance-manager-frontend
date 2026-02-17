@@ -22,8 +22,8 @@ export default function NewCategoryModal({onClose, editcategory, uptadeCategorie
     const [categoryName, setCategoryName] = useState<string>(editcategory?.name ?? "");
     const [color, setColor] = useState<string>(editcategory?.color_hex ?? "#1677ff");
     const [type, setType] = useState<string>(editcategory?.type ?? "");
-    const [isActive, setIsActive] = useState(false);
-    const [alertMessage, setAlertMessage] = useState<AlertMessage>({message: "", type: "success"});
+    const [isActive, _setIsActive] = useState(false);
+    const [alertMessage, _setAlertMessage] = useState<AlertMessage>({message: "", type: "success"});
     const [isLoading, setIsLoading] = useState(false);
     const [api, contextHolder] = notification.useNotification();
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

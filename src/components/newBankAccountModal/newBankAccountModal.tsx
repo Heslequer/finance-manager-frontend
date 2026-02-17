@@ -1,23 +1,10 @@
-import { Button, Modal } from "antd";
 import { useState } from "react";
 
 
 export default function NewBankAccountModal({showModal, onClose}: {showModal: boolean, onClose: () => void}) {
-    const [isModalOpen, setIsModalOpen] = useState(showModal);
-    // if(showModal){
-    //     setIsModalOpen(true);
-    // }
-    // const showModal = () => {
-    //     setIsModalOpen(true);
-    // };
-    
-    const handleOk = () => {
-        setIsModalOpen(false);
-    };
-    
-    const handleCancel = () => {
-        setIsModalOpen(false);
-    };
+    const [_isModalOpen, _setIsModalOpen] = useState(showModal);
+    void _isModalOpen;
+    void _setIsModalOpen;
 
     return (
         <>

@@ -75,7 +75,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   const [categorySelected, setCategorySelected] = useState<ColourOption | null>(null);
   const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
   const [subcategorySelected, setSubcategorySelected] = useState<ColourOption | null>(null);
-  const [category, setCategory] = useState<ColourOption | null>(null);
+  const [_category, setCategory] = useState<ColourOption | null>(null);
   const [subcategoryOptions, setSubcategoryOptions] = useState<ColourOption[]>([]);
 
   const currencySymbol = 'R$';
@@ -611,10 +611,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   }
   // const data: DataType[]  = []
 
-  const pageSizeForTable = pagination.pageSize;
-  const halfPage = Math.max(1, Math.floor(pageSizeForTable / 2));
-
-  const fetchData = async (userId: string, page: number) => {
+  const fetchData = async (userId: string, _page: number) => {
     setIsLoadingData(true);
     const expenses = await expensesApiService.getAllExpensesByUserId(userId);
     const incomes = await incomesApiService.getAllIncomesByUserId(userId);

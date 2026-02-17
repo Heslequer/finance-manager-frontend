@@ -11,7 +11,7 @@ interface CategoryCardProps {
     updateCategories: () => void;
 }
 export default function CategoryCard({currentCategory, updateCategories}: CategoryCardProps) {
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [_categories, setCategories] = useState<Category[]>([]);
     const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -19,7 +19,7 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
     const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
     const [subcategoryInput, setSubcategoryInput] = useState<string>("");
     const [messageApi, contextHolder] = message.useMessage();
-    const [category, setCategory] = useState<Category>(currentCategory);
+    const [category, _setCategory] = useState<Category>(currentCategory);
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);	
     const error = (message: string) => {

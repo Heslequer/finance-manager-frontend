@@ -7,13 +7,12 @@ import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption } from './docs/data';
-import { DatePicker, Input, Space, Button, Alert, Radio, Upload, message, Drawer } from 'antd';
+import { DatePicker, Input, Space, Button, Radio, Upload, Drawer } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import Select, { type StylesConfig } from 'react-select';
 import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
 import type { DataType } from '../../pages/dashboard/transactions/transactions';
 import dayjs, { Dayjs } from 'dayjs';
-import { LoadingOutlined } from '@ant-design/icons';
 
 type ModalProps = {
     onClose: () => void;
@@ -21,11 +20,6 @@ type ModalProps = {
     uptadeTransactions: () => void;
     onOpenNotification: (type: string, message: string, description?: string) => any;
 };
-
-type AlertMessage = {
-  message: string;
-  type: "success" | "error";
-}
 
 // const colourStyles: StylesConfig<ColourOption, true> = {
 //   control: (styles) => ({ ...styles, backgroundColor: 'white' }),
@@ -137,10 +131,10 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
     const [amount, setAmount] = useState<string>("");
     const [date, setDate] = useState<Dayjs | null>(null);
     const [description, setDescription] = useState<string | null>(null);
-    const [category, setCategory] = useState<ColourOption | null>(null);
+    const [, setCategory] = useState<ColourOption | null>(null);
     const [subcategoryOptions, setSubcategoryOptions] = useState<ColourOption[]>([]);
     const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
-    const [isActive, setIsActive] = useState(false);
+    const [_isActive, _setIsActive] = useState(false);
     // const [alertMessage, setAlertMessage] = useState<AlertMessage>({message: "", type: "success"});
     // const [isLoading, setIsLoading] = useState(false);
     const [categorySelected, setCategorySelected] = useState<ColourOption | null>(null);

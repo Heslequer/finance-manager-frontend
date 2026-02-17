@@ -8,8 +8,6 @@ import {
   type PieChartProps,
 } from '@mui/x-charts/PieChart';
 import { useEffect, useState, useMemo } from 'react';
-import { incomesApiService } from '../../../services/api/incomes/incomes.api';
-import { expensesApiService } from '../../../services/api/expenses/expenses.api';
 import { categoriesApiService } from '../../../services/api/categories/categories.api';
 import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
 import type { Category } from '../../../types/category.interface';
@@ -57,7 +55,7 @@ export default function ChartsSection({
   const [incomesLineData, setIncomesLineData] = useState<number[]>([]);
   const [expensesLineData, setExpensesLineData] = useState<number[]>([]);
   const [lineChartTimeframe, setLineChartTimeframe] = useState<string>('day');
-  const [isLineChartExpanded, setIsLineChartExpanded] = useState<boolean>(false);
+  const [isLineChartExpanded, _setIsLineChartExpanded] = useState<boolean>(false);
 
   // States for Category Ranking
   const [rankingData, setRankingData] = useState<Array<{ title: string; transactionCount: number; amount: number; percentage: number; type: 'income' | 'expense' }>>([]);
