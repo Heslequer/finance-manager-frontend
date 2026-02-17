@@ -1,3 +1,3 @@
 export const environment = {
-  backendApiUrl: 'http://localhost:3000',
+  backendApiUrl: 'https://finance-manager-backend-smoky.vercel.app',
 } as const;
