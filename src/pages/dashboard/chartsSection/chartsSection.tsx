@@ -8,19 +8,15 @@ import {
   type PieChartProps,
 } from '@mui/x-charts/PieChart';
 import { useEffect, useState, useMemo } from 'react';
-import { IncomesService } from '../../../services/supabase/incomes/incomes.service';
-import { ExpensesService } from '../../../services/supabase/expenses/expenses.service';
-import { CategoriesService } from '../../../services/supabase/categories/categories.service';
-import { SubcategoriesService } from '../../../services/supabase/subcategories/subcategories.service';
-import type { Category } from '../../../services/supabase/categories/categories.interface';
-import type { Subcategory } from '../../../services/supabase/subcategories/subcategories.interface';
-import type { Expense } from '../../../services/supabase/expenses/expenses.interface';
-import type { Income } from '../../../services/supabase/incomes/incomes.interface';
+import { incomesApiService } from '../../../services/api/incomes/incomes.api';
+import { expensesApiService } from '../../../services/api/expenses/expenses.api';
+import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
+import type { Category } from '../../../types/category.interface';
+import type { Subcategory } from '../../../types/subcategory.interface';
+import type { Expense } from '../../../types/expense.interface';
+import type { Income } from '../../../types/income.interface';
 
-const incomesService = new IncomesService();
-const expensesService = new ExpensesService();
-const categoriesService = new CategoriesService();
-const subcategoriesService = new SubcategoriesService();
 
 type ChartsSectionProps = {
   totalExpenses: number;
@@ -89,7 +85,7 @@ export default function ChartsSection({
       const amount = filteredExpenses
         .filter(exp => exp.subcategory_id === subcategory.id)
         .reduce((sum, exp) => sum + Number(exp.amount), 0);
-      const subcategoryColor = await categoriesService.getCategoryColorById(subcategory.category_id);
+      const subcategoryColor = await categoriesApiService.getCategoryColorById(subcategory.category_id);
       data2.push({label: subcategory.name, value: amount, color: subcategoryColor});
     }
     const updatedData2 = await Promise.all(data2.map(async (item) =>{
@@ -128,7 +124,7 @@ export default function ChartsSection({
       const amount = filteredIncomes
         .filter(inc => inc.subcategory_id === subcategory.id)
         .reduce((sum, inc) => sum + Number(inc.amount), 0);
-      const subcategoryColor = await categoriesService.getCategoryColorById(subcategory.category_id);
+      const subcategoryColor = await categoriesApiService.getCategoryColorById(subcategory.category_id);
       data2Income.push({label: subcategory.name, value: amount, color: subcategoryColor});
     }
     const updatedData2Income = await Promise.all(data2Income.map(async (item) =>{
@@ -230,16 +226,14 @@ export default function ChartsSection({
 
   function buildRankingData(
     expenseCategories: Category[],
-    expenseSubcategories: Subcategory[],
     incomeCategories: Category[],
-    incomeSubcategories: Subcategory[],
     expenses: Expense[],
     incomes: Income[]
   ): Array<{ title: string; transactionCount: number; amount: number; percentage: number; type: 'income' | 'expense' }> {
     const totalExp = expenses.reduce((s, e) => s + Number(e.amount), 0);
     const totalInc = incomes.reduce((s, i) => s + Number(i.amount), 0);
     const rows: Array<{ title: string; transactionCount: number; amount: number; percentage: number; type: 'income' | 'expense' }> = [];
-    // Expense categories
+    // Expense categories only (subcategories ignored)
     for (const cat of expenseCategories) {
       const items = expenses.filter((e) => e.category_id === cat.id);
       const amount = items.reduce((s, e) => s + Number(e.amount), 0);
@@ -253,41 +247,13 @@ export default function ChartsSection({
         });
       }
     }
-    // Expense subcategories
-    for (const sub of expenseSubcategories) {
-      const items = expenses.filter((e) => e.subcategory_id === sub.id);
-      const amount = items.reduce((s, e) => s + Number(e.amount), 0);
-      if (amount > 0) {
-        rows.push({
-          title: sub.name,
-          transactionCount: items.length,
-          amount,
-          percentage: totalExp > 0 ? (amount / totalExp) * 100 : 0,
-          type: 'expense',
-        });
-      }
-    }
-    // Income categories
+    // Income categories only (subcategories ignored)
     for (const cat of incomeCategories) {
       const items = incomes.filter((i) => i.category_id === cat.id);
       const amount = items.reduce((s, i) => s + Number(i.amount), 0);
       if (amount > 0) {
         rows.push({
           title: cat.name,
-          transactionCount: items.length,
-          amount,
-          percentage: totalInc > 0 ? (amount / totalInc) * 100 : 0,
-          type: 'income',
-        });
-      }
-    }
-    // Income subcategories
-    for (const sub of incomeSubcategories) {
-      const items = incomes.filter((i) => i.subcategory_id === sub.id);
-      const amount = items.reduce((s, i) => s + Number(i.amount), 0);
-      if (amount > 0) {
-        rows.push({
-          title: sub.name,
           transactionCount: items.length,
           amount,
           percentage: totalInc > 0 ? (amount / totalInc) * 100 : 0,
@@ -345,10 +311,10 @@ export default function ChartsSection({
         .map(inc => inc.category_id!))];
 
       if (expenseCategoryIds.length > 0) {
-        const expenseCategories = await categoriesService.getCategoriesByIds(expenseCategoryIds);
-        const categoriesColors = await categoriesService.getCategoriesColorsByCategoryIds(expenseCategoryIds);
-        const expenseSubcategories = await subcategoriesService.getSubcategoriesByCategoryIds(expenseCategoryIds);
-        const categoriesNames = await categoriesService.getCategoriesNamesByIds(expenseCategoryIds);
+        const expenseCategories = await categoriesApiService.getCategoriesByIds(expenseCategoryIds);
+        const categoriesColors = await categoriesApiService.getCategoriesColorsByCategoryIds(expenseCategoryIds);
+        const expenseSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(expenseCategoryIds);
+        const categoriesNames = await categoriesApiService.getCategoriesNamesByIds(expenseCategoryIds);
         
         // Calculate amounts from filtered expenses
         const expensesAmountByCategory: number[] = expenseCategoryIds.map(catId => {
@@ -373,10 +339,10 @@ export default function ChartsSection({
       setIsLoadingExpensesChart(false);
 
       if (incomeCategoryIds.length > 0) {
-        const incomeCategories = await categoriesService.getCategoriesByIds(incomeCategoryIds);
-        const incomeCategoriesColors = await categoriesService.getCategoriesColorsByCategoryIds(incomeCategoryIds);
-        const incomeSubcategories = await subcategoriesService.getSubcategoriesByCategoryIds(incomeCategoryIds);
-        const incomeCategoriesNames = await categoriesService.getCategoriesNamesByIds(incomeCategoryIds);
+        const incomeCategories = await categoriesApiService.getCategoriesByIds(incomeCategoryIds);
+        const incomeCategoriesColors = await categoriesApiService.getCategoriesColorsByCategoryIds(incomeCategoryIds);
+        const incomeSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(incomeCategoryIds);
+        const incomeCategoriesNames = await categoriesApiService.getCategoriesNamesByIds(incomeCategoryIds);
         
         // Calculate amounts from filtered incomes
         const incomesAmountByCategory: number[] = incomeCategoryIds.map(catId => {
@@ -400,27 +366,19 @@ export default function ChartsSection({
       
       setIsLoadingIncomesChart(false);
 
-      // Build ranking from filtered data
+      // Build ranking from filtered data (categories only, subcategories ignored)
       if (expenseCategoryIds.length > 0 || incomeCategoryIds.length > 0) {
         const expenseCategories = expenseCategoryIds.length > 0 
-          ? await categoriesService.getCategoriesByIds(expenseCategoryIds)
-          : [];
-        const expenseSubcategories = expenseCategoryIds.length > 0
-          ? await subcategoriesService.getSubcategoriesByCategoryIds(expenseCategoryIds)
+          ? await categoriesApiService.getCategoriesByIds(expenseCategoryIds)
           : [];
         const incomeCategories = incomeCategoryIds.length > 0
-          ? await categoriesService.getCategoriesByIds(incomeCategoryIds)
-          : [];
-        const incomeSubcategories = incomeCategoryIds.length > 0
-          ? await subcategoriesService.getSubcategoriesByCategoryIds(incomeCategoryIds)
+          ? await categoriesApiService.getCategoriesByIds(incomeCategoryIds)
           : [];
 
         setRankingData(
           buildRankingData(
             expenseCategories,
-            expenseSubcategories,
             incomeCategories,
-            incomeSubcategories,
             filteredExpenses,
             filteredIncomes
           )
@@ -443,7 +401,7 @@ export default function ChartsSection({
       setIsLoadingLineChart(false);
       return;
     }
-    prepareLineChartData(allExpenses, allIncomes, lineChartTimeframe);
+    prepareLineChartData(allIncomes, allExpenses, lineChartTimeframe);
   }, [lineChartTimeframe, allExpenses, allIncomes, filtersApplied]);
 
   // Configuration for Pie Chart of Categories of Expenses

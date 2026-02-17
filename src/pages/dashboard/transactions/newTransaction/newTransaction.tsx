@@ -1,7 +1,7 @@
 import "./newTransaction.scss";
-import type { Expense } from "../../../../services/supabase/expenses/expenses.interface";
-import type { Income } from "../../../../services/supabase/incomes/incomes.interface";
-import { CategoriesService } from "../../../../services/supabase/categories/categories.service";
+import type { Expense } from "../../../../types/expense.interface";
+import type { Income } from "../../../../types/income.interface";
+import { categoriesApiService } from "../../../../services/api/categories/categories.api";
 import { useEffect, useState } from "react";
 import { Button } from "antd";
 import { EditOutlined } from '@ant-design/icons';
@@ -17,21 +17,20 @@ export default function NewTransaction({expense, income, onSendExpenseOrIncome}:
     const [incomeCategoryName, setIncomeCategoryName] = useState<string>("");
     useEffect(() => {
         const fetchData = async () => {
-            const categoriesService = new CategoriesService();
             if(expense && expense.category_id){
-                const categoryColor: string = await categoriesService.getCategoryColorById(expense.category_id);
-                const category = await categoriesService.getCategoryById(expense.category_id);
+                const categoryColor: string = await categoriesApiService.getCategoryColorById(expense.category_id);
+                const category = await categoriesApiService.getCategoryById(expense.category_id);
                 setExpenseCategoryColor(categoryColor);
-                setExpenseCategoryName(category.name);
+                setExpenseCategoryName(category?.name ?? '');
             } else {
                 setExpenseCategoryColor("");
                 setExpenseCategoryName("");
             }
             if(income && income.category_id){
-                const categoryColor: string = await categoriesService.getCategoryColorById(income.category_id);
-                const category = await categoriesService.getCategoryById(income.category_id);
+                const categoryColor: string = await categoriesApiService.getCategoryColorById(income.category_id);
+                const category = await categoriesApiService.getCategoryById(income.category_id);
                 setIncomeCategoryColor(categoryColor);
-                setIncomeCategoryName(category.name);
+                setIncomeCategoryName(category?.name ?? '');
             } else {
                 setIncomeCategoryColor("");
                 setIncomeCategoryName("");

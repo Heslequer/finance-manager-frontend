@@ -6,9 +6,9 @@ import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption, getColourOptions } from '../newExpanseModal/docs/data';
 import Select, { type StylesConfig } from 'react-select';
-import { IncomesService } from '../../services/supabase/incomes/incomes.service';
+import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import { DatePicker, Input, Space, Button, Alert } from 'antd';
-import type { Income } from '../../services/supabase/incomes/incomes.interface';
+import type { Income } from '../../types/income.interface';
 
 
 type ModalProps = {
@@ -76,7 +76,6 @@ const colourStyles: StylesConfig<ColourOption, true> = {
 };
 
 export default function NewExpenseModal({onClose, income}: ModalProps) {
-    const incomesService = new IncomesService();
     const [amount, setAmount] = useState<string | undefined>("");
     const [date, setDate] = useState("");
     const [description, setDescription] = useState("");
@@ -92,7 +91,7 @@ export default function NewExpenseModal({onClose, income}: ModalProps) {
     // const [incomeDetails, setIncomeDetails] = useState<Income | null>(income);
     const handleSubmit = async (e: React.FormEvent) => {
       setIsLoading(true);
-      e.preventDefault(); // evita reload da página
+      e.preventDefault(); // prevents page reload
       if(amount === "" || date === ""){
         setAlertMessage({message: `${amount === ""  && date === "" 
           ? "Amount and Date are" : amount === "" 
@@ -112,7 +111,7 @@ export default function NewExpenseModal({onClose, income}: ModalProps) {
       };
 
       try {
-        await incomesService.createIncome(newTransaction);
+        await incomesApiService.createIncome(newTransaction);
         setAlertMessage({message: "Income created successfully", type: "success"});
         setIsActive(true);
       } catch (error) {

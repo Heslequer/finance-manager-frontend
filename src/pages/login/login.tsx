@@ -1,19 +1,42 @@
+import { useState } from 'react';
 import './login.scss';
-import { Button, Checkbox, Form, Input } from 'antd';
+import { Button, Checkbox, Form, Input, message } from 'antd';
 import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined, RightOutlined, WalletOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '../../services/auth/auth.service';
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [messageApi, contextHolder] = message.useMessage();
 
-    const onFinish = (values: { email: string; password: string }) => {
-        console.log('Login values:', values);
-        navigate('/dashboard');
+    const onFinish = async (values: { email: string; password: string }) => {
+        setLoading(true);
+
+        const hideLoading = messageApi.loading('Logging in ...', 0);
+
+        try {
+            await authService.signInWithEmail(values);
+
+            hideLoading();
+
+            messageApi.success('Login successful!');
+            navigate('/dashboard');
+        } catch (error: unknown) {
+            hideLoading();
+            messageApi.error(
+                error instanceof Error ? error.message : 'Error logging in. Please check your credentials.'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="login-page flex-center">
+        <>
+            {contextHolder}
+            <div className="login-page flex-center">
             <div className="login-card flex">
                 <div className="login-card-left flex-column p-6">
                     <div className="login-branding flex mb-6">
@@ -87,7 +110,7 @@ export default function LoginPage() {
                         </Form.Item>
 
                         <Form.Item>
-                            <Button type="primary" htmlType="submit" size="large" block className="login-submit-btn">
+                            <Button type="primary" htmlType="submit" size="large" block className="login-submit-btn" loading={loading}>
                                 Sign in
                                 <RightOutlined className="ml-2" />
                             </Button>
@@ -125,5 +148,6 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

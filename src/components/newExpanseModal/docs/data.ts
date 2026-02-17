@@ -1,5 +1,5 @@
-import { CategoriesService } from '../../../services/supabase/categories/categories.service';
-import type { Category } from '../../../services/supabase/categories/categories.interface';
+import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import type { Category } from '../../../types/category.interface';
 
 export interface ColourOption {
   readonly value: string;
@@ -9,17 +9,9 @@ export interface ColourOption {
   readonly isDisabled?: boolean;
 }
 
-<<<<<<< Updated upstream
-const categoriesService = new CategoriesService();
-const categories: Category[] = await categoriesService.getCategories();
-export const colourOptions: ColourOption[] = [];
-for (const category of categories) {
-  colourOptions.push({
-=======
 export async function getColourOptions(): Promise<ColourOption[]> {
   const categories: Category[] = await categoriesApiService.getCategories();
   return categories.map((category) => ({
->>>>>>> Stashed changes
     value: category.id!,
     label: category.name,
     color: category.color_hex || '#00B8D9',

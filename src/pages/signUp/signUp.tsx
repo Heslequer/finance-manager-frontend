@@ -1,19 +1,46 @@
+import { useState } from 'react';
 import './signUp.scss';
-import { Button, Checkbox, Form, Input } from 'antd';
+import { Button, Checkbox, Form, Input, message } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined, RightOutlined, WalletOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { authService, type SignUpPayload } from '../../services/auth/auth.service';
 
 export default function SignUpPage() {
     const navigate = useNavigate();
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [messageApi, contextHolder] = message.useMessage();
 
-    const onFinish = (values: Record<string, string>) => {
-        console.log('Sign up values:', values);
-        navigate('/dashboard');
+    const onFinish = async (values: SignUpPayload) => {
+        setLoading(true);
+
+        const hideLoading = messageApi.loading('Creating account...', 0);
+
+        try {
+            const result = await authService.signUpWithEmail(values);
+            hideLoading();
+
+            if (result.requiresEmailConfirmation) {
+                messageApi.success('Account created! Please check your email to confirm your account.');
+                navigate('/login');
+            } else {
+                messageApi.success('Account created successfully!');
+                navigate('/dashboard');
+            }
+        } catch (error: unknown) {
+            hideLoading();
+            messageApi.error(
+                error instanceof Error ? error.message : 'Error creating account. Please try again.'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="signup-page flex-center">
+        <>
+            {contextHolder}
+            <div className="signup-page flex-center">
             <div className="signup-card flex">
                 <div className="signup-card-left flex-column p-6">
                     <h4 className="h4 font-weight-600 mb-1">Create your account</h4>
@@ -104,7 +131,7 @@ export default function SignUpPage() {
                         </Form.Item>
 
                         <Form.Item className="mb-0">
-                            <Button type="primary" htmlType="submit" size="large" block className="signup-submit-btn">
+                            <Button type="primary" htmlType="submit" size="large" block className="signup-submit-btn" loading={loading}>
                                 Create my account
                                 <RightOutlined className="ml-2" />
                             </Button>
@@ -150,7 +177,7 @@ export default function SignUpPage() {
                         The future of your financial freedom starts here.
                     </h3>
                     <p className="signup-description p3 font-weight-300 mb-8">
-                        Join thousands of people who have already saved over R$ 2M using our platform.
+                        Join thousands of people who have already saved over $2M using our platform.
                     </p>
                     <div className="signup-features flex gap-3 my-auto">
                         <div className="signup-feature-box flex-column p-3">
@@ -165,5 +192,6 @@ export default function SignUpPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
