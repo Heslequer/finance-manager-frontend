@@ -3,11 +3,13 @@ import { incomesApiService } from '../../../services/api/incomes/incomes.api';
 import { expensesApiService } from '../../../services/api/expenses/expenses.api';
 import { categoriesApiService } from '../../../services/api/categories/categories.api';
 import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
+import { transactionsApiService } from '../../../services/api/transactions/transactions.api';
+import type { TransactionItem } from '../../../services/api/transactions/transactions.api';
 import type { Category } from '../../../types/category.interface';
 import { useState, useEffect, useRef } from 'react';
 import NewexpenseModal from '../../../components/newExpanseModal/newExpenseModal';
 import ImportOfxModal from '../../../components/importOfxModal/ImportOfxModal';
-import { Button, DatePicker, Layout, Space, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
+import { Button, Checkbox, DatePicker, Layout, Space, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
 import Select, { type StylesConfig } from 'react-select';
 import type { InputRef, TableColumnType, TableProps } from 'antd';
 import { Content } from 'antd/es/layout/layout';
@@ -77,8 +79,31 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   const [subcategorySelected, setSubcategorySelected] = useState<ColourOption | null>(null);
   const [_category, setCategory] = useState<ColourOption | null>(null);
   const [subcategoryOptions, setSubcategoryOptions] = useState<ColourOption[]>([]);
+  const [expenseCategoryFilters, setExpenseCategoryFilters] = useState<{ text: string; value: string }[]>([]);
+  const [incomeCategoryFilters, setIncomeCategoryFilters] = useState<{ text: string; value: string }[]>([]);
 
   const currencySymbol = 'R$';
+
+  useEffect(() => {
+    const loadAllCategoriesForFilter = async () => {
+      try {
+        const [expenseCategories, incomeCategories] = await Promise.all([
+          categoriesApiService.getCategoriesByType('expense'),
+          categoriesApiService.getCategoriesByType('income'),
+        ]);
+        setExpenseCategoryFilters(
+          expenseCategories.map((c) => ({ text: c.name.charAt(0).toUpperCase() + c.name.slice(1), value: c.id ?? '' })),
+        );
+        setIncomeCategoryFilters(
+          incomeCategories.map((c) => ({ text: c.name.charAt(0).toUpperCase() + c.name.slice(1), value: c.id ?? '' })),
+        );
+      } catch {
+        setExpenseCategoryFilters([]);
+        setIncomeCategoryFilters([]);
+      }
+    };
+    loadAllCategoriesForFilter();
+  }, []);
 
   const drawerSelectStyles: StylesConfig<ColourOption> = {
     ...colourStyles,
@@ -100,17 +125,6 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     clearFilters();
     setSearchText('');
   };
-    const handleFilter = (data: DataType[]) => {
-    const filters: {text: string, value: string}[] = [];
-    for(const item of data){
-      if(item.category.length > 0 && item.category[0]){
-        filters.push({text: item.category[0].name, value: item.category[0].id ?? ""});
-      }
-    }
-    const uniqueFilters = Array.from(new Map(filters.map(item => [item.value, item])).values())
-    return uniqueFilters;
-  }
-
   const getColumnSearchProps = (dataIndex: DataIndex): TableColumnType<DataType> => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
       <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
@@ -122,7 +136,15 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
           onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
           style={{ marginBottom: 8, display: 'block' }}
         />
-        <Space>
+        <div className="flex-space-between gap-2">
+          <Button
+            type="link"
+            onClick={() => { clearFilters && handleReset(clearFilters); close(); }}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Reset
+          </Button>
           <Button
             type="primary"
             onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
@@ -132,34 +154,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
           >
             Search
           </Button>
-          <Button
-            onClick={() => clearFilters && handleReset(clearFilters)}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Reset
-          </Button>
-          {/* <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              confirm({ closeDropdown: false });
-              setSearchText((selectedKeys as string[])[0]);
-              setSearchedColumn(dataIndex);
-            }}
-          >
-            Filter
-          </Button> */}
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              close();
-            }}
-          >
-            close
-          </Button>
-        </Space>
+        </div>
       </div>
     ),
     filterIcon: (filtered: boolean) => (
@@ -445,7 +440,6 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       },
     },
     {
-
       title: 'Category',
       key: 'category',
       dataIndex: 'category',
@@ -455,10 +449,62 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         const bName = b.category.length > 0 ? b.category[0].name : '';
         return aName.localeCompare(bName);
       },
-      filters: handleFilter(data),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters}) => {
+        const currentKeys = Array.isArray(selectedKeys) ? selectedKeys : selectedKeys ? [selectedKeys] : [];
+        const toggleKey = (value: string) => {
+          const next = currentKeys.includes(value)
+            ? currentKeys.filter((k) => k !== value)
+            : [...currentKeys, value];
+          setSelectedKeys(next);
+        };
+        return (
+          <div style={{ padding: 8, minWidth: 220 }} onKeyDown={(e) => e.stopPropagation()}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Incomes</div>
+              {incomeCategoryFilters.length === 0 ? (
+                <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>No income category</span>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {incomeCategoryFilters.map((opt) => (
+                    <Checkbox
+                      key={opt.value}
+                      checked={currentKeys.includes(opt.value)}
+                      onChange={() => toggleKey(opt.value)}
+                    >
+                      {opt.text}
+                    </Checkbox>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Expenses</div>
+              {expenseCategoryFilters.length === 0 ? (
+                <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>No expense category</span>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {expenseCategoryFilters.map((opt) => (
+                    <Checkbox
+                      key={opt.value}
+                      checked={currentKeys.includes(opt.value)}
+                      onChange={() => toggleKey(opt.value)}
+                    >
+                      {opt.text}
+                    </Checkbox>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-space-between gap-2">
+              <Button type="link" size="small" onClick={() => { clearFilters?.(); confirm(); }} style={{ width: 90 }}>Reset</Button>
+              <Button type="primary" size="small" onClick={() => { confirm(); close(); }} style={{ width: 90 }}>OK</Button>
+            </div>
+          </div>
+        );
+      },
       filteredValue: filteredInfo.category || null,
-      onFilter:(value, record) => (record.category.length > 0 && record.category.map(item => item.id).includes(value as string)) ?? false,
-      
+      onFilter: (value, record) => (record.category.length > 0 && record.category.map((item) => item.id).includes(value as string)) ?? false,
       render: (_, record) => {
         const { category, subcategory } = record;
         return (
@@ -532,26 +578,28 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
               style={{ marginBottom: 8, width: '100%' }}
               allowClear
             />
-            <Space>
+            <div className="flex-space-between gap-2">
               <Button
-                type="primary"
-                size="small"
-                onClick={() => confirm()}
-                style={{ width: 70 }}
-              >
-                OK
-              </Button>
-              <Button
+                type="link"
                 size="small"
                 onClick={() => {
                   clearFilters?.();
                   confirm();
+                  close();
                 }}
-                style={{ width: 70 }}
+                style={{ width: 90 }}
               >
                 Reset
               </Button>
-            </Space>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => { confirm(); close(); }}
+                style={{ width: 90 }}
+              >
+                OK
+              </Button>
+            </div>
           </div>
         );
       },
@@ -611,197 +659,193 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   }
   // const data: DataType[]  = []
 
-  const fetchData = async (userId: string, _page: number) => {
-    setIsLoadingData(true);
-    const expenses = await expensesApiService.getAllExpensesByUserId(userId);
-    const incomes = await incomesApiService.getAllIncomesByUserId(userId);
-    const expenseRows = await Promise.all(
-      expenses.map(async (expense) => {
-        let category: Category | null = null;
-        let subcategory: Subcategory | null = null;
-        if (expense.category_id) {
-          category = await categoriesApiService.getCategoryById(expense.category_id);
-        }
-        if (expense.subcategory_id) {
-          subcategory = await subcategoriesApiService.getSubcategoryById(expense.subcategory_id);
-        }
-        return {
-          key: String(expense.id),
-          type: "expense",
-          amount: Number(expense.amount),
-          description: expense.description,
-          category: category ? [category] : [],
-          date: new Date(expense.date).toLocaleDateString("en-US", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          }),
-          dateRaw: String(expense.date).slice(0, 10),
-          subcategory: subcategory ? [subcategory] : [],
-        } as DataType;
-      })
-    );
-    const incomeRows = await Promise.all(
-      incomes.map(async (income) => {
-        let category: Category | null = null;
-        let subcategory: Subcategory | null = null;
-        if (income.category_id) {
-          category = await categoriesApiService.getCategoryById(income.category_id);
-        }
-        if (income.subcategory_id) {
-          subcategory = await subcategoriesApiService.getSubcategoryById(income.subcategory_id);
-        }
-        return {
-          key: String(income.id),
-          type: "income",
-          amount: Number(income.amount),
-          description: income.description,
-          category: category ? [category] : [],
-          date: new Date(income.date).toLocaleDateString("en-US", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          }),
-          dateRaw: String(income.date).slice(0, 10),
-          subcategory: subcategory ? [subcategory] : [],
-        } as DataType;
-      })
-    );
+  const transactionItemToDataType = (item: TransactionItem): DataType => {
+    const category = item.categories
+      ? ([item.categories] as Category[])
+      : [];
+    const subcategory = item.subcategories
+      ? ([item.subcategories] as Subcategory[])
+      : [];
+    const dateRaw = String(item.date ?? '').slice(0, 10);
+    return {
+      key: item.id,
+      type: item.type,
+      amount: item.amount,
+      description: item.description ?? undefined,
+      category,
+      subcategory,
+      date: new Date(item.date ?? '').toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+      dateRaw,
+    };
+  };
 
-    const allRows = [...expenseRows, ...incomeRows].sort(
-      (a, b) => (b.dateRaw || '').localeCompare(a.dateRaw || '')
-    );
-    setData(allRows);
-    setTotalCount(expenses.length + incomes.length);
-    setIsLoadingData(false);
+  const fetchData = async () => {
+    setIsLoadingData(true);
+    try {
+      const typeFilter = Array.isArray(filteredInfo.type) ? filteredInfo.type[0] : filteredInfo.type;
+      let dateFrom: string | undefined;
+      let dateTo: string | undefined;
+      const dateFilter = filteredInfo.date;
+      if (dateFilter && Array.isArray(dateFilter) && dateFilter[0] != null) {
+        try {
+          const range = JSON.parse(String(dateFilter[0])) as [string, string];
+          dateFrom = range[0];
+          dateTo = range[1];
+        } catch {
+          // ignore
+        }
+      }
+      const categoryFilter = Array.isArray(filteredInfo.category) ? filteredInfo.category[0] : filteredInfo.category;
+
+      const res = await transactionsApiService.getTransactions({
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        ...(typeFilter ? { type: typeFilter as 'expense' | 'income' } : {}),
+        ...(dateFrom ? { dateFrom } : {}),
+        ...(dateTo ? { dateTo } : {}),
+        ...(categoryFilter ? { categoryId: String(categoryFilter) } : {}),
+      });
+
+      const rows = res.data.map(transactionItemToDataType);
+      setData(rows);
+      setTotalCount(res.total);
+    } finally {
+      setIsLoadingData(false);
+    }
   };
 
   useEffect(() => {
-    fetchData("50baa1d0-57aa-4eff-932f-228e773784eb", pagination.current);
-  }, [tableKey, pagination.current, pagination.pageSize]);
+    fetchData();
+  }, [tableKey, pagination.current, pagination.pageSize, filteredInfo]);
 
   const onChange: TableProps<DataType>['onChange'] = (paginationInfo, filters) => {
-    setFilteredInfo(filters);
+    setFilteredInfo(filters ?? {});
     if (paginationInfo) {
       setPagination({
         current: paginationInfo.current || 1,
         pageSize: paginationInfo.pageSize || 10,
       });
+    } else if (filters != null && Object.keys(filters).length > 0) {
+      setPagination((prev) => ({ ...prev, current: 1 }));
     }
   };
   return (
       <>
-          <Layout style={{ minHeight: "100vh" }}>
-              <Sidebar onOpenDashboardPage={() => navigate('/dashboard')} onOpenCategoriesPage={() => navigate('/categories')} />
-              <Layout>
-                <Content>
-                  {openTransactionDrawer && (
-                      <NewexpenseModal onClose={() => setOpenTransactionDrawer(false)} uptadeTransactions={() =>  setTableKey(prev => prev + 1)} transactionToEdit={transactionToEdit} onOpenNotification={(type: string, message: string, description?: string) => onOpenNotification(type, message, description)} />
-                  )}
-                  <ImportOfxModal
-                    open={importOfxOpen}
-                    onClose={() => setImportOfxOpen(false)}
-                    onSuccess={() => setTableKey((prev) => prev + 1)}
-                    onOpenNotification={onOpenNotification}
-                  />
-                  <div className="grid-accurate-18 main-container flex-column p-5">
-                      <div className="header flex">
-                          <h4 className='font-weight-500'>Recent Transactions</h4>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <Button icon={<UploadOutlined />} onClick={() => setImportOfxOpen(true)}>Import</Button>
-                            <Button type="primary" onClick={() => {setOpenTransactionDrawer(!openTransactionDrawer); setTransactionToEdit(null)}}>Add Transaction</Button>
-                          </div>
-                      </div>
-
-                      <div className='transactions-container flex-column mt-4'>
-                           <Table<DataType>
-                             columns={columns}
-                             dataSource={data}
-                             key={tableKey}
-                             onChange={onChange}
-                             rowSelection={rowSelection}
-                             loading={isLoadingData ? { indicator: <LoadingOutlined spin style={{ fontSize: 40 }} /> } : false}
-                            pagination={{
-                              current: pagination.current,
-                              pageSize: pagination.pageSize,
-                              total: totalCount,
-                              showSizeChanger: true,
-                              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-                            }}
-                            showSorterTooltip={{ target: 'sorter-icon' }} bordered 
-                          />
-                          <div className="transactions-body flex">
-
-                          </div>
-                      </div>
-
-                      <Drawer
-                        placement="bottom"
-                        height={100}
-                        closable={false}
-                        mask={false}
-                        onClose={() => setSelectedRowKeys([])}
-                        open={selectedRowKeys.length > 0}
-                        className='drawer-element'
-                      >
-                        <div className='flex-center-row px-auto'>                          
-                          <div className="flex-space-between gap-5">
-                            <span style={{ color: 'red' }}>
-                              You selected {selectedRowKeys.length} line
-                              {selectedRowKeys.length > 1 ? 's' : ''}
-                            </span>
-                              <Divider className='divider' type="vertical"></Divider>
-                            <div className="flex gap-3">
-                              <label htmlFor="category" className="py-1">Category</label>
-                              <Select
-                                value={categorySelected}
-                                options={colourOptions}
-                                styles={drawerSelectStyles}
-                                placeholder="Select a category"
-                                onChange={(e) => onCategoryChange(e as ColourOption)}
-                                isSearchable={false}
-                                menuPlacement="top"
-                                menuPortalTarget={document.body}
-                                menuPosition="fixed"
-                                isDisabled={areSelectsDisabled}
-                              />
-                            </div>
-                            <div className="flex gap-3">
-                              <label htmlFor="subcategory" className="py-1">Subcategory</label>
-                              <Select
-                                value={subcategorySelected}
-                                options={subcategoryOptions}
-                                styles={drawerSelectStyles}
-                                placeholder="Select a subcategory"
-                                onChange={(e) => onSubcategoryChange(e as ColourOption)}
-                                menuPlacement="top"
-                                menuPortalTarget={document.body}
-                                menuPosition="fixed"
-                                isDisabled={areSelectsDisabled}
-                              />
-                            </div>
-                            <Button
-                              type="primary"
-                              onClick={handleBulkApplyCategory}
-                              loading={isApplyingBulkCategory}
-                              disabled={areSelectsDisabled || !categorySelected?.value}
-                            >
-                              Apply
-                            </Button>
-                            <Button
-                              onClick={handleBulkDelete}
-                              loading={isDeleting}
-                              icon={<DeleteOutlined />}
-                            >
-                            </Button>
-                            <CloseOutlined className='close-drawer-icon' onClick={() => setSelectedRowKeys([])} />
-                          </div>
+        <Layout style={{ minHeight: "100vh" }}>
+            <Sidebar onOpenDashboardPage={() => navigate('/dashboard')} onOpenCategoriesPage={() => navigate('/categories')} />
+            <Layout>
+              <Content>
+                {openTransactionDrawer && (
+                    <NewexpenseModal onClose={() => setOpenTransactionDrawer(false)} uptadeTransactions={() =>  setTableKey(prev => prev + 1)} transactionToEdit={transactionToEdit} onOpenNotification={(type: string, message: string, description?: string) => onOpenNotification(type, message, description)} />
+                )}
+                <ImportOfxModal
+                  open={importOfxOpen}
+                  onClose={() => setImportOfxOpen(false)}
+                  onSuccess={() => setTableKey((prev) => prev + 1)}
+                  onOpenNotification={onOpenNotification}
+                />
+                <div className="grid-accurate-18 main-container flex-column p-5">
+                    <div className="header flex">
+                        <h4 className='font-weight-500'>Recent Transactions</h4>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Button icon={<UploadOutlined />} onClick={() => setImportOfxOpen(true)}>Import</Button>
+                          <Button type="primary" onClick={() => {setOpenTransactionDrawer(!openTransactionDrawer); setTransactionToEdit(null)}}>Add Transaction</Button>
                         </div>
-                      </Drawer>
-                  </div>
-                </Content>
-              </Layout>
-          </Layout>
+                    </div>
+
+                    <div className='transactions-container flex-column mt-4'>
+                          <Table<DataType>
+                            columns={columns}
+                            dataSource={data}
+                            key={tableKey}
+                            onChange={onChange}
+                            rowSelection={rowSelection}
+                            loading={isLoadingData ? { indicator: <LoadingOutlined spin style={{ fontSize: 40 }} /> } : false}
+                          pagination={{
+                            current: pagination.current,
+                            pageSize: pagination.pageSize,
+                            total: totalCount,
+                            showSizeChanger: true,
+                            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                          }}
+                          showSorterTooltip={{ target: 'sorter-icon' }} bordered 
+                        />
+                        <div className="transactions-body flex">
+
+                        </div>
+                    </div>
+
+                    <Drawer
+                      placement="bottom"
+                      height={100}
+                      closable={false}
+                      mask={false}
+                      onClose={() => setSelectedRowKeys([])}
+                      open={selectedRowKeys.length > 0}
+                      className='drawer-element'
+                    >
+                      <div className='flex-center-row px-auto'>                          
+                        <div className="flex-space-between gap-5">
+                          <span style={{ color: 'red' }}>
+                            You selected {selectedRowKeys.length} line
+                            {selectedRowKeys.length > 1 ? 's' : ''}
+                          </span>
+                            <Divider className='divider' type="vertical"></Divider>
+                          <div className="flex gap-3">
+                            <label htmlFor="category" className="py-1">Category</label>
+                            <Select
+                              value={categorySelected}
+                              options={colourOptions}
+                              styles={drawerSelectStyles}
+                              placeholder="Select a category"
+                              onChange={(e) => onCategoryChange(e as ColourOption)}
+                              isSearchable={false}
+                              menuPlacement="top"
+                              menuPortalTarget={document.body}
+                              menuPosition="fixed"
+                              isDisabled={areSelectsDisabled}
+                            />
+                          </div>
+                          <div className="flex gap-3">
+                            <label htmlFor="subcategory" className="py-1">Subcategory</label>
+                            <Select
+                              value={subcategorySelected}
+                              options={subcategoryOptions}
+                              styles={drawerSelectStyles}
+                              placeholder="Select a subcategory"
+                              onChange={(e) => onSubcategoryChange(e as ColourOption)}
+                              menuPlacement="top"
+                              menuPortalTarget={document.body}
+                              menuPosition="fixed"
+                              isDisabled={areSelectsDisabled}
+                            />
+                          </div>
+                          <Button
+                            type="primary"
+                            onClick={handleBulkApplyCategory}
+                            loading={isApplyingBulkCategory}
+                            disabled={areSelectsDisabled || !categorySelected?.value}
+                          >
+                            Apply
+                          </Button>
+                          <Button
+                            onClick={handleBulkDelete}
+                            loading={isDeleting}
+                            icon={<DeleteOutlined />}
+                          >
+                          </Button>
+                          <CloseOutlined className='close-drawer-icon' onClick={() => setSelectedRowKeys([])} />
+                        </div>
+                      </div>
+                    </Drawer>
+                </div>
+              </Content>
+            </Layout>
+        </Layout>
       </>
   )
 }
