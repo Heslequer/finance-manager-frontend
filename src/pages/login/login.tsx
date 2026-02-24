@@ -8,16 +8,48 @@ import { authService } from '../../services/auth/auth.service';
 export default function LoginPage() {
     const navigate = useNavigate();
     const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
+    const [loadingEmail, setLoadingEmail] = useState(false);
+    const [loadingGoogle, setLoadingGoogle] = useState(false);
+    const [loadingGithub, setLoadingGithub] = useState(false);
     const [messageApi, contextHolder] = message.useMessage();
 
+    const onGoogleLogin = async () => {
+        setLoadingGoogle(true);
+        try {
+            await authService.signInWithGoogle();
+        } catch (error: unknown) {
+            setLoadingGoogle(false);
+            messageApi.error(
+                error instanceof Error ? error.message : 'Error signing in with Google.'
+            );
+        }
+    };
+
+    const onGithubLogin = async () => {
+        setLoadingGithub(true);
+        try {
+            await authService.signInWithGithub();
+        } catch (error: unknown) {
+            setLoadingGithub(false);
+            messageApi.error(
+                error instanceof Error ? error.message : 'Error signing in with GitHub.'
+            );
+        }
+    };
+
     const onFinish = async (values: { email: string; password: string }) => {
-        setLoading(true);
+        setLoadingEmail(true);
 
         const hideLoading = messageApi.loading('Logging in ...', 0);
 
         try {
-            await authService.signInWithEmail(values);
+            const TIMEOUT_MS = 15000;
+            await Promise.race([
+                authService.signInWithEmail(values),
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Login took too long. Please try again.')), TIMEOUT_MS)
+                ),
+            ]);
 
             hideLoading();
 
@@ -29,7 +61,7 @@ export default function LoginPage() {
                 error instanceof Error ? error.message : 'Error logging in. Please check your credentials.'
             );
         } finally {
-            setLoading(false);
+            setLoadingEmail(false);
         }
     };
 
@@ -110,7 +142,7 @@ export default function LoginPage() {
                         </Form.Item>
 
                         <Form.Item>
-                            <Button type="primary" htmlType="submit" size="large" block className="login-submit-btn" loading={loading}>
+                            <Button type="primary" htmlType="submit" size="large" block className="login-submit-btn" loading={loadingEmail}>
                                 Sign in
                                 <RightOutlined className="ml-2" />
                             </Button>
@@ -124,7 +156,14 @@ export default function LoginPage() {
                     </div>
 
                     <div className="login-social flex gap-2">
-                        <Button size="large" block className="login-social-btn">
+                        <Button
+                            size="large"
+                            block
+                            className="login-social-btn"
+                            onClick={onGoogleLogin}
+                            loading={loadingGoogle}
+                            disabled={loadingGoogle}
+                        >
                             <svg width="18" height="18" viewBox="0 0 18 18" className="mr-2">
                                 <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
                                 <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 6.168-2.172l-2.908-2.258c-.806.54-1.837.86-3.26.86-2.513 0-4.646-1.697-5.414-3.96H.957v2.332C2.438 15.983 5.482 18 9 18z" />
@@ -133,11 +172,18 @@ export default function LoginPage() {
                             </svg>
                             Google
                         </Button>
-                        <Button size="large" block className="login-social-btn">
+                        <Button
+                            size="large"
+                            block
+                            className="login-social-btn"
+                            onClick={onGithubLogin}
+                            loading={loadingGithub}
+                            disabled={loadingGithub}
+                        >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                             </svg>
-                            Github
+                            GitHub
                         </Button>
                     </div>
 
