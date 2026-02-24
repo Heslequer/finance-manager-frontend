@@ -199,10 +199,17 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
       e.preventDefault();
       setSendingTransaction(true);
 
+      // Backend expects date in ISO 8601 (YYYY-MM-DD). dayjs().toString() is not valid.
+      const dateForApi = date
+        ? dayjs(date).format('YYYY-MM-DD')
+        : defaultDate
+          ? defaultDate.replace(/\//g, '-') // "YYYY/MM/DD" -> "YYYY-MM-DD"
+          : dayjs().format('YYYY-MM-DD');   // new transaction without date = today
+
       const newTransaction = {
         type: transactionToEdit?.type ?? type,
         amount: amount ? Number(amount.replace(",",".")) :  transactionToEdit?.amount as number,
-        date: date?.toString() ?? defaultDate.toString(),
+        date: dateForApi,
         description: description === "" ? description : description ?? transactionToEdit?.description,
         category_id: categorySelected?.value!,
         subcategory_id: subcategorySelected?.value!,
