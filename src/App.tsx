@@ -3,10 +3,32 @@ import './styles/main.scss'
 import AppRoutes from './routes/appRoutes'
 import { notification } from 'antd'
 import { ConfigProvider } from 'antd'
-import React from 'react'
+import React, { useEffect } from 'react'
+import { authService } from './services/auth/auth.service'
+import { supabase } from './lib/supabase'
+
 type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
 const App:React.FC = () => {
+  useEffect(() => {
+    const syncUserOnSession = async () => {
+      try {
+        await authService.ensureUserInPublicTable();
+      } catch {
+        // Failure should not block the app
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          syncUserOnSession(); // no await: does not block login flow
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
   const openNotificationWithIcon = (type: string, message: string, description?: string) => {
     api[type as NotificationType]({
       message: message,
