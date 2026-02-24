@@ -9,7 +9,7 @@ import type { Category } from '../../../types/category.interface';
 import { useState, useEffect, useRef } from 'react';
 import NewexpenseModal from '../../../components/newExpanseModal/newExpenseModal';
 import ImportOfxModal from '../../../components/importOfxModal/ImportOfxModal';
-import { Button, Checkbox, DatePicker, Layout, Space, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
+import { Button, Checkbox, DatePicker, Layout, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
 import Select, { type StylesConfig } from 'react-select';
 import type { InputRef, TableColumnType, TableProps } from 'antd';
 import { Content } from 'antd/es/layout/layout';
