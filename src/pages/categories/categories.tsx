@@ -52,7 +52,7 @@ export default function CategoriesPage() {
     return (
         <>
             <Layout style={{ height: "100%" }}>
-                <Sidebar onOpenDashboardPage={() => navigate('/dashboard')} onOpenCategoriesPage={() => navigate('/categories')} />
+                <Sidebar onOpenDashboardPage={() => navigate('/reports')} onOpenCategoriesPage={() => navigate('/categories')} />
                 <Layout>
                     <Content>
                         {showNewCategoryModal && (

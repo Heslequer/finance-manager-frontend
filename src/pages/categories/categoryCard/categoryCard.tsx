@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import './categoryCard.scss'
-import { Button, ColorPicker, Space, Input, Popconfirm, message } from 'antd';
+import { Button, ColorPicker, Space, Input, Popconfirm, message, notification } from 'antd';
 import type { Subcategory } from '../../../types/subcategory.interface';
 import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
 import { categoriesApiService } from '../../../services/api/categories/categories.api';
+import { ApiHttpError } from '../../../services/api/http/httpClient';
 import type { Category } from '../../../types/category.interface';
 import NewCategoryModal from '../../../components/newCategoryModal/newCategoryModal';
 interface CategoryCardProps {
@@ -18,15 +19,16 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
     const [popDeleteConfirmationFor, setPopDeleteConfirmationFor] = useState<string>("");
     const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
     const [subcategoryInput, setSubcategoryInput] = useState<string>("");
-    const [messageApi, contextHolder] = message.useMessage();
+    const [api, contextHolder] = notification.useNotification();
     const [category, _setCategory] = useState<Category>(currentCategory);
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);	
-    const error = (message: string) => {
-        messageApi.open({
-          type: 'error',
-          content: message,
-        });
+    
+    const error = (title: string, description: string) => {
+        api['error']({
+            message: title,
+            description: description,
+        })
     };
     const handleCreateSubcategory = async (categoryId: string) => {
         if(subcategoryInput.trim() !== ""){
@@ -43,13 +45,13 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
                 setSubcategoryInput("");
             }catch(err){
                 console.error("Error creating subcategory:", err);
-                error("Error creating subcategory");
+                error("Error creating subcategory", "Insert a valid subcategory name");
             }finally{
                 const subcategories = await subcategoriesApiService.getSubcategoriesByCategoryId(currentCategory.id!);
                 setSubcategories(subcategories);
             }
         }else{
-            error("Insert a valid subcategory name");
+            error("Error creating subcategory", "Insert a valid subcategory name");
         }
     };
     const handleEditCategory = (category?: Category) => {
@@ -63,6 +65,11 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
             await delay(500);
         }catch(err){
             console.error("Error deleting subcategory:", err);
+            const linked =
+            err instanceof ApiHttpError &&
+            err.statusCode === 409 &&
+            err.apiCode === 'SUBCATEGORY_HAS_LINKED_TRANSACTIONS';
+            error("Error deleting subcategory", linked ? err.message : "");
         }finally{
             setIsDeleting(false);
             setPopDeleteConfirmationFor("");
@@ -76,13 +83,18 @@ export default function CategoryCard({currentCategory, updateCategories}: Catego
             console.log("Deleting category:", id);
             await categoriesApiService.deleteCategory(id);
             await delay(500);
-        }catch(err){
+        } catch (err) {
             console.error("Error deleting category:", err);
-            error("Error deleting category");
-        }finally{
+            const linked =
+            err instanceof ApiHttpError &&
+            err.statusCode === 409 &&
+            err.apiCode === 'CATEGORY_HAS_LINKED_TRANSACTIONS';
+            error("Error deleting category", linked ? err.message : "");
+        } finally {
             setIsDeleting(false);
             const categories = await categoriesApiService.getCategories();
             setCategories(categories);
+            setPopDeleteConfirmationFor("");
             updateCategories();
         }
     };
