@@ -3,7 +3,21 @@ import { supabase } from '../../../lib/supabase';
 
 type ApiErrorResponse = {
   message?: string | string[];
+  statusCode?: number;
+  code?: string;
 };
+
+export class ApiHttpError extends Error {
+  readonly statusCode: number;
+  readonly apiCode?: string;
+
+  constructor(message: string, statusCode: number, apiCode?: string) {
+    super(message);
+    this.name = 'ApiHttpError';
+    this.statusCode = statusCode;
+    this.apiCode = apiCode;
+  }
+}
 
 type ApiRequestOptions = RequestInit & {
   skipAuth?: boolean;
@@ -45,9 +59,13 @@ export async function apiRequest<TResponse>(
 
   if (!response.ok) {
     let errorMessage = 'Request failed.';
+    let apiCode: string | undefined;
 
     try {
       const responseBody = (await response.json()) as ApiErrorResponse;
+      if (typeof responseBody.code === 'string') {
+        apiCode = responseBody.code;
+      }
       if (Array.isArray(responseBody.message)) {
         errorMessage = responseBody.message.join(', ');
       } else if (responseBody.message) {
@@ -57,7 +75,7 @@ export async function apiRequest<TResponse>(
       errorMessage = `Request failed with status ${response.status}.`;
     }
 
-    throw new Error(errorMessage);
+    throw new ApiHttpError(errorMessage, response.status, apiCode);
   }
 
   if (response.status === 204) {

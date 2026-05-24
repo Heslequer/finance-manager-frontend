@@ -25,7 +25,7 @@ export default function SignUpPage() {
                 navigate('/login');
             } else {
                 messageApi.success('Account created successfully!');
-                navigate('/dashboard');
+                navigate('/reports');
             }
         } catch (error: unknown) {
             hideLoading();

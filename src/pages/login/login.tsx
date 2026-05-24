@@ -54,7 +54,7 @@ export default function LoginPage() {
             hideLoading();
 
             messageApi.success('Login successful!');
-            navigate('/dashboard');
+            navigate('/reports');
         } catch (error: unknown) {
             hideLoading();
             messageApi.error(
@@ -71,9 +71,9 @@ export default function LoginPage() {
             <div className="login-page flex-center">
             <div className="login-card flex">
                 <div className="login-card-left flex-column p-6">
-                    <div className="login-branding flex mb-6">
-                        <WalletOutlined className="login-brand-icon h5 mr-2" />
-                        <span className="login-brand-text h5 font-weight-600">FinancePro</span>
+                    <div className="login-branding flex mb-6 gap-2">
+                        <img src="./src/assets/logo-white-no-background.svg" alt="Heavenance" height={50} />
+                        <h4 className="login-brand-text h1 font-weight-400">Heavenance</h4>
                     </div>
                     <h3 className="login-tagline h4 font-weight-700 mb-3">
                         Take full control of your financial life.

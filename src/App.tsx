@@ -24,6 +24,9 @@ const App:React.FC = () => {
         if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
           syncUserOnSession(); // no await: does not block login flow
         }
+        if (event === 'SIGNED_OUT') {
+          authService.clearUserSyncCache();
+        }
       }
     );
 
