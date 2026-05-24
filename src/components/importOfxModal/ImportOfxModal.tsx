@@ -202,7 +202,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
         </Button>,
       ]}
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
