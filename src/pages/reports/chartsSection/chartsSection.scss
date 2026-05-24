@@ -33,10 +33,19 @@
 
     .ranking-wrapper {
         width: 100%;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
 
         .ant-spin-nested-loading,
         .ant-spin-container {
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
         }
     }
 

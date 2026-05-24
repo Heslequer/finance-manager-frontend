@@ -592,7 +592,7 @@ export default function ChartsSection({
 
           <div className="card flex-column chart-info-container category-ranking">
               <h5 className="font-weight-500 mb-2">Ranking of expenses and incomes</h5>
-              <div className="ranking-wrapper" style={{ minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+              <div className="ranking-wrapper">
                 <Spin spinning={isLoadingRanking} indicator={<LoadingOutlined spin />} size="large">
                   {!isLoadingRanking && (
                     <div className="ranking-list">

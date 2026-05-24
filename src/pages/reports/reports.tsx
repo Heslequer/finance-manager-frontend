@@ -1,4 +1,4 @@
-import './dashboard.scss'
+import './reports.scss'
 import { Chart as ChartJS, 
   ArcElement, 
   Tooltip, 
@@ -40,7 +40,7 @@ type RangePickerProps = GetProps<typeof DatePicker.RangePicker>;
 const { RangePicker } = DatePicker;
 const disabledDate: RangePickerProps['disabledDate'] = () => false; // Allow past and future dates
 
-export default function Dashboard() {
+export default function Reports() {
   const [totalIncomes, setTotalIncomes] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [_totalBalance, setTotalBalance] = useState<number>(0);
@@ -48,11 +48,11 @@ export default function Dashboard() {
   const [expenseSubcategories, setExpenseSubcategories] = useState<Subcategory[]>([]);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false); 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['expenses-group', 'incomes-group']);
   const [internalSelectedCategories, setInternalSelectedCategories] = useState<Set<string>>(new Set());
-  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>(undefined);
+  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>('last_30_days');
   const [selectedDateRange, setSelectedDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
-  const [selectedTransactionType, setSelectedTransactionType] = useState<string>('');
+  const [selectedTransactionType, setSelectedTransactionType] = useState<string>('all');
   const [filtersApplied, setFiltersApplied] = useState<boolean>(false);
   const [filteredExpenses, setFilteredExpenses] = useState<any[]>([]);
   const [filteredIncomes, setFilteredIncomes] = useState<any[]>([]);
@@ -98,6 +98,11 @@ export default function Dashboard() {
     fetchCategories();
   }, []);
 
+  // Apply "last 30 days" filter on initial load
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Function to calculate date range based on period
   const getDateRangeFromPeriod = (period: string): [Date, Date] | null => {
@@ -105,6 +110,12 @@ export default function Dashboard() {
     today.setHours(23, 59, 59, 999);
     
     switch (period) {
+      case 'last_30_days': {
+        const start = new Date(today);
+        start.setDate(start.getDate() - 30);
+        start.setHours(0, 0, 0, 0);
+        return [start, today];
+      }
       case 'last_week': {
         const start = new Date(today);
         start.setDate(start.getDate() - 7);
@@ -490,6 +501,7 @@ export default function Dashboard() {
         // Individual subcategory or other selection
         newInternalSet.add(addedValue);
       }
+      console.log('value', selectedCategories);
     }
 
     // Process removals
@@ -554,7 +566,7 @@ export default function Dashboard() {
   return (
   <>
     <Layout style={{ minHeight: "100vh" }}>
-      <Sidebar onOpenDashboardPage={() => navigate('/dashboard')} onOpenCategoriesPage={() => navigate('/categories')} />
+      <Sidebar onOpenDashboardPage={() => navigate('/reports')} onOpenCategoriesPage={() => navigate('/categories')} />
       <Layout style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <ConfigProvider
           theme={{
@@ -608,10 +620,10 @@ export default function Dashboard() {
                                 }
                               }}
                               options={[
+                                {value: 'last_30_days', label: 'Last 30 Days'},
                                 {value: 'last_week', label: 'Last Week'},
                                 {value: 'last_month', label: 'Last Month'},
                                 {value: 'last_3_months', label: 'Last 3 Months'},
-                                {value: 'all_time', label: 'All Time'},
                                 {value: 'custom', label: 'Custom'},
                               ]}
                             />
@@ -651,6 +663,7 @@ export default function Dashboard() {
                               multiple
                               style={{ width: 300 }}
                               placeholder="Select categories"
+                              defaultValue={['expenses-group', 'incomes-group']}
                               value={selectedCategories}
                               treeCheckable={true}
                               showCheckedStrategy={SHOW_PARENT}

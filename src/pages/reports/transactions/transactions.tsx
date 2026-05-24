@@ -7,7 +7,7 @@ import { transactionsApiService } from '../../../services/api/transactions/trans
 import type { TransactionItem } from '../../../services/api/transactions/transactions.api';
 import type { Category } from '../../../types/category.interface';
 import { useState, useEffect, useRef } from 'react';
-import NewexpenseModal from '../../../components/newExpanseModal/newExpenseModal';
+import NewexpenseModal from '../../../components/newExpanseModal/newTransactionModal';
 import ImportOfxModal from '../../../components/importOfxModal/ImportOfxModal';
 import { Button, Checkbox, DatePicker, Layout, Table, Tag, Popconfirm, Tooltip, Drawer, Divider } from 'antd';
 import Select, { type StylesConfig } from 'react-select';
@@ -24,7 +24,7 @@ import type { FilterDropdownProps } from 'antd/es/table/interface';
 import { Input } from 'antd';
 import { truncate } from '../../../utils/truncate';
 
-import { colourStyles } from '../../../components/newExpanseModal/newExpenseModal';
+import { colourStyles } from '../../../components/newExpanseModal/newTransactionModal';
 import dayjs from 'dayjs';
 import { type ColourOption } from '../../../components/newExpanseModal/docs/data';
 
@@ -51,6 +51,21 @@ type DataIndex = keyof DataType;
 type OnChange = NonNullable<TableProps<DataType>['onChange']>;
 type Filters = Parameters<OnChange>[1];
 
+/** Backend sends calendar dates as YYYY-MM-DD. Avoid `new Date("YYYY-MM-DD")` (UTC midnight) so local zones do not show the previous day. */
+function formatDateOnlyForDisplay(isoDate: string | null | undefined): string {
+  const part = String(isoDate ?? '').slice(0, 10);
+  const [yStr, mStr, dStr] = part.split('-');
+  const y = Number(yStr);
+  const m = Number(mStr);
+  const d = Number(dStr);
+  if (!y || !m || !d) return '';
+  const local = new Date(y, m - 1, d);
+  return local.toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 export default function Transactions( {onOpenNotification}: ModalProps) {
   const [openTransactionDrawer, setOpenTransactionDrawer] = useState<boolean>(false);
@@ -126,7 +141,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
     setSearchText('');
   };
   const getColumnSearchProps = (dataIndex: DataIndex): TableColumnType<DataType> => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
       <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
         <Input
           ref={searchInput}
@@ -139,7 +154,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         <div className="flex-space-between gap-2">
           <Button
             type="link"
-            onClick={() => { clearFilters && handleReset(clearFilters); close(); }}
+            onClick={() => { clearFilters && handleReset(clearFilters); handleSearch([], confirm, dataIndex)}}
             size="small"
             style={{ width: 90 }}
           >
@@ -449,7 +464,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         const bName = b.category.length > 0 ? b.category[0].name : '';
         return aName.localeCompare(bName);
       },
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters}) => {
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => {
         const currentKeys = Array.isArray(selectedKeys) ? selectedKeys : selectedKeys ? [selectedKeys] : [];
         const toggleKey = (value: string) => {
           const next = currentKeys.includes(value)
@@ -457,8 +472,18 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
             : [...currentKeys, value];
           setSelectedKeys(next);
         };
+        const typeFilterRaw = filteredInfo.type;
+        const selectedTypes: string[] =
+          typeFilterRaw == null || typeFilterRaw == undefined
+            ? []
+            : Array.isArray(typeFilterRaw)
+              ? typeFilterRaw.map(String)
+              : [String(typeFilterRaw)];
+        const showIncomeCategories = selectedTypes.length === 0 || selectedTypes.includes('income');
+        const showExpenseCategories = selectedTypes.length === 0 || selectedTypes.includes('expense');
         return (
           <div style={{ padding: 8, minWidth: 220 }} onKeyDown={(e) => e.stopPropagation()}>
+            {showIncomeCategories && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Incomes</div>
               {incomeCategoryFilters.length === 0 ? (
@@ -477,6 +502,8 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                 </div>
               )}
             </div>
+            )}
+            {showExpenseCategories && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Expenses</div>
               {expenseCategoryFilters.length === 0 ? (
@@ -495,10 +522,16 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                 </div>
               )}
             </div>
+            )}
 
             <div className="flex-space-between gap-2">
-              <Button type="link" size="small" onClick={() => { clearFilters?.(); confirm(); }} style={{ width: 90 }}>Reset</Button>
-              <Button type="primary" size="small" onClick={() => { confirm(); close(); }} style={{ width: 90 }}>OK</Button>
+              <Button 
+                type="link" 
+                size="small" 
+                onClick={() => { clearFilters?.(); confirm(); close?.(); }} 
+                style={{ width: 90 }}>Reset
+              </Button>
+              <Button type="primary" size="small" onClick={() => { confirm(); close?.(); }} style={{ width: 90 }}>OK</Button>
             </div>
           </div>
         );
@@ -674,19 +707,25 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       description: item.description ?? undefined,
       category,
       subcategory,
-      date: new Date(item.date ?? '').toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
+      date: formatDateOnlyForDisplay(item.date),
       dateRaw,
     };
+  };
+
+  const resolveTypeQueryParam = (): 'expense' | 'income' | undefined => {
+    const raw = filteredInfo.type;
+    if (raw == null) return undefined;
+    const list = Array.isArray(raw) ? raw.map(String) : [String(raw)];
+    const unique = [...new Set(list.filter((t) => t === 'income' || t === 'expense'))];
+    if (unique.length === 0) return undefined;
+    if (unique.length > 1) return undefined;
+    return unique[0] as 'expense' | 'income';
   };
 
   const fetchData = async () => {
     setIsLoadingData(true);
     try {
-      const typeFilter = Array.isArray(filteredInfo.type) ? filteredInfo.type[0] : filteredInfo.type;
+      const typeFilter = resolveTypeQueryParam();
       let dateFrom: string | undefined;
       let dateTo: string | undefined;
       const dateFilter = filteredInfo.date;
@@ -699,7 +738,13 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
           // ignore
         }
       }
-      const categoryFilter = Array.isArray(filteredInfo.category) ? filteredInfo.category[0] : filteredInfo.category;
+      const rawCategory = filteredInfo.category;
+      const categoryIds =
+        rawCategory == null
+          ? []
+          : Array.isArray(rawCategory)
+            ? [...new Set(rawCategory.map(String).filter((id) => id.length > 0))]
+            : [String(rawCategory)].filter((id) => id.length > 0);
 
       const res = await transactionsApiService.getTransactions({
         page: pagination.current,
@@ -707,7 +752,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
         ...(typeFilter ? { type: typeFilter as 'expense' | 'income' } : {}),
         ...(dateFrom ? { dateFrom } : {}),
         ...(dateTo ? { dateTo } : {}),
-        ...(categoryFilter ? { categoryId: String(categoryFilter) } : {}),
+        ...(categoryIds.length > 0 ? { categoryId: categoryIds.join(',') } : {}),
       });
 
       const rows = res.data.map(transactionItemToDataType);
@@ -736,7 +781,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
   return (
       <>
         <Layout style={{ minHeight: "100vh" }}>
-            <Sidebar onOpenDashboardPage={() => navigate('/dashboard')} onOpenCategoriesPage={() => navigate('/categories')} />
+            <Sidebar onOpenDashboardPage={() => navigate('/')} onOpenCategoriesPage={() => navigate('/categories')} />
             <Layout>
               <Content>
                 {openTransactionDrawer && (
@@ -750,7 +795,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                 />
                 <div className="grid-accurate-18 main-container flex-column p-5">
                     <div className="header flex">
-                        <h4 className='font-weight-500'>Recent Transactions</h4>
+                        <h4 className='font-weight-500'>All Transactions</h4>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <Button icon={<UploadOutlined />} onClick={() => setImportOfxOpen(true)}>Import</Button>
                           <Button type="primary" onClick={() => {setOpenTransactionDrawer(!openTransactionDrawer); setTransactionToEdit(null)}}>Add Transaction</Button>

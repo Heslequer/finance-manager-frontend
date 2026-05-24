@@ -2,7 +2,7 @@ import './sidebar.scss'
 import React, { useState, useEffect } from 'react';
 import { ConfigProvider, Layout, Menu, theme} from 'antd';
 import type { MenuProps } from 'antd';
-import { UnorderedListOutlined, HomeOutlined, BarChartOutlined, TagOutlined, LogoutOutlined } from '@ant-design/icons';
+import { UnorderedListOutlined, HomeOutlined, BarChartOutlined, TagOutlined, LogoutOutlined, CreditCardOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 const { Sider } = Layout;
@@ -11,13 +11,11 @@ type SidebarProps = {
     onOpenCategoriesPage: () => void;
 };
   const items = [{key: "/" , label: "Home"},
-    {key: "/dashboard" , label: "Dashboard"},
+    {key: "/reports" , label: "Reports"},
     {key: "/transactions" , label: "Transactions"},
     {key: "/categories" , label: "Categories"},
+    // {key: "/credit-cards" , label: "Credit Cards"},
   ] 
-//   ["Home", "Dashboard", "Add transaction", "Categories"];
-  // const pages = ["/", "/dashboard", "/add-transaction", "/categories"];
-//   const navigate = useNavigate();
  
 export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOpenCategoriesPage: _onOpenCategoriesPage }: SidebarProps) {
     const [collapsed, setCollapsed] = useState(true);
@@ -30,7 +28,9 @@ export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOp
     const {
         token: { colorBgContainer},
       } = theme.useToken();
-      const items2: MenuProps['items'] = [HomeOutlined, BarChartOutlined, UnorderedListOutlined, TagOutlined ].map(
+      const items2: MenuProps['items'] = [HomeOutlined, BarChartOutlined, UnorderedListOutlined, TagOutlined,
+        //  CreditCardOutlined 
+        ].map(
         (icon, index) => {      
           return {
             key: items[index].key,
