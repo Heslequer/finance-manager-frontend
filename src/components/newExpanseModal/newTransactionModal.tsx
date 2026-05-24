@@ -1,18 +1,24 @@
-import './newExpenseModal.scss'
+import './newTransactionModal.scss'
 import CurrencyInput from 'react-currency-input-field';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { categoriesApiService } from '../../services/api/categories/categories.api';
 import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption } from './docs/data';
-import { DatePicker, Input, Space, Button, Radio, Upload, Drawer } from 'antd';
+import { DatePicker, Input, Space, Button, Radio, Upload, Drawer, message, Spin } from 'antd';
+import type { UploadFile } from 'antd';
+
+/** Existing bucket object path, set when receipts are loaded from Storage */
+type ReceiptUploadFile = UploadFile & { storagePath?: string };
 import { UploadOutlined } from '@ant-design/icons';
 import Select, { type StylesConfig } from 'react-select';
 import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
-import type { DataType } from '../../pages/dashboard/transactions/transactions';
+import type { DataType } from '../../pages/reports/transactions/transactions';
 import dayjs, { Dayjs } from 'dayjs';
+import { receiptsService } from '../../services/receipts/receipts.service';
+import { supabase } from '../../lib/supabase';
 
 type ModalProps = {
     onClose: () => void;
@@ -127,7 +133,7 @@ export const colourStyles: StylesConfig<ColourOption> = {
 };
 
 
-export default function NewExpenseModal({onClose, transactionToEdit, uptadeTransactions, onOpenNotification}: ModalProps) {
+export default function NewTransactionModal({onClose, transactionToEdit, uptadeTransactions, onOpenNotification}: ModalProps) {
     const [amount, setAmount] = useState<string>("");
     const [date, setDate] = useState<Dayjs | null>(null);
     const [description, setDescription] = useState<string | null>(null);
@@ -144,11 +150,52 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
     const [loadingSubcategories, setLoadingSubcategories] = useState(false);
     const [defaultDate, setDefaultDate] = useState<any| null>(null);
     const [sendingTransaction, setSendingTransaction] = useState<boolean>(false);
+    const [receiptFileList, setReceiptFileList] = useState<ReceiptUploadFile[]>([]);
+    /** Paths loaded when opening edit; used to delete from bucket when user removes items before submit */
+    const initialReceiptStoragePathsRef = useRef<string[]>([]);
+    const [loadingReceipts, setLoadingReceipts] = useState(false);
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     useEffect(() => {
+      let cancelled = false;
+      const loadExistingReceipts = async () => {
+        if (!transactionToEdit?.key) {
+          initialReceiptStoragePathsRef.current = [];
+          setReceiptFileList([]);
+          return;
+        }
+        setLoadingReceipts(true);
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user?.id || cancelled) return;
+          const items = await receiptsService.listReceiptsWithSignedUrls(user.id, transactionToEdit.key);
+          if (cancelled) return;
+          initialReceiptStoragePathsRef.current = items.map((item) => item.path);
+          setReceiptFileList(
+            items.map((item, i) => ({
+              uid: `receipt-${transactionToEdit.key}-${i}-${item.name}`,
+              name: item.name,
+              status: 'done' as const,
+              url: item.signedUrl,
+              thumbUrl: item.signedUrl,
+              storagePath: item.path,
+            })),
+          );
+        } finally {
+          if (!cancelled) setLoadingReceipts(false);
+        }
+      };
+      void loadExistingReceipts();
+      return () => {
+        cancelled = true;
+      };
+    }, [transactionToEdit?.key]);
+
+    useEffect(() => {
+      let cancelled = false;
       const fetchData = async () => {
-        const categories = await categoriesApiService.getCategoriesByType(transactionToEdit?.type?? type);
+        const categories = await categoriesApiService.getCategoriesByType(transactionToEdit?.type ?? type);
+        if (cancelled) return;
         const colourOptions: ColourOption[] = [];
         for (const category of categories) {
           colourOptions.push({
@@ -158,42 +205,61 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
           });
         }
         setColourOptions(colourOptions);
-        if(transactionToEdit){
-          const date = new Date(transactionToEdit.date);
-          const formatted = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
-          setDefaultDate(formatted);
+
+        if (!transactionToEdit) {
+          return;
+        }
+
+        const date = new Date(transactionToEdit.date);
+        const formatted = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        setDefaultDate(formatted);
+
+        const editCategory = transactionToEdit.category[0];
+        const categoryColor = editCategory?.color_hex || '#942121';
+
+        if (editCategory?.id) {
           setCategorySelected({
-            value: transactionToEdit.category[0].id!,
-            label: transactionToEdit.category[0].name,
-            color: transactionToEdit.category[0].color_hex || '#942121',
+            value: editCategory.id,
+            label: editCategory.name,
+            color: categoryColor,
           });
-          setSubcategorySelected({
-            value: transactionToEdit.subcategory[0].id!,
-            label: transactionToEdit.subcategory[0].name,
-            color: "",
-          });
-          
-          if(categorySelected?.value){
-            setLoadingSubcategories(true);
-            console.log("categorySelected", categorySelected);
-            const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(categorySelected?.value);
-            console.log("subcategories", subcategories);
-            const colourOptionsSubcategories: ColourOption[] = [];
-            for (const subcategory of subcategories) {
-              colourOptionsSubcategories.push({
-                value: subcategory.id!,
-                label: subcategory.name,
-                color: '#942121',
-              });
-            }
-            console.log("colourOptionsSubcategories", colourOptionsSubcategories);
-            setSubcategoryOptions(colourOptionsSubcategories);
-            setLoadingSubcategories(false);
+          setLoadingSubcategories(true);
+          try {
+            const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(editCategory.id);
+            if (cancelled) return;
+            setSubcategoryOptions(
+              subcategories.map((sub) => ({
+                value: sub.id!,
+                label: sub.name,
+                color: categoryColor,
+              })),
+            );
+          } finally {
+            if (!cancelled) setLoadingSubcategories(false);
           }
+        } else {
+          setCategorySelected(null);
+          setSubcategoryOptions([]);
+        }
+
+        if (cancelled) return;
+
+        const editSub = transactionToEdit.subcategory[0];
+        if (editSub?.id) {
+          setSubcategorySelected({
+            value: editSub.id,
+            label: editSub.name,
+            color: categoryColor,
+          });
+        } else {
+          setSubcategorySelected(null);
         }
       };
-      fetchData();
-    }, [defaultDate]);
+      void fetchData();
+      return () => {
+        cancelled = true;
+      };
+    }, [transactionToEdit?.key, transactionToEdit?.type, type]);
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -211,42 +277,87 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
         amount: amount ? Number(amount.replace(",",".")) :  transactionToEdit?.amount as number,
         date: dateForApi,
         description: description === "" ? description : description ?? transactionToEdit?.description,
-        category_id: categorySelected?.value!,
-        subcategory_id: subcategorySelected?.value!,
+        // JSON.stringify drops `undefined`, so the API would not clear FKs; send `null` to persist cleared selects.
+        category_id: categorySelected?.value ?? null,
+        subcategory_id: subcategorySelected?.value ?? null,
         id: transactionToEdit?.key,
       };
       console.log("description", description);
-        
+
+      let transactionId: string | null = null;
+
       try{
         if(transactionToEdit){
           if(newTransaction.type && type)
           {
             if(newTransaction.type === "expense"){
               await incomesApiService.deleteIncome(transactionToEdit.key!);
-              await expensesApiService.createExpense(newTransaction);
+              const created = await expensesApiService.createExpense(newTransaction);
+              transactionId = created.id ?? null;
             }else{
               await expensesApiService.deleteExpense(transactionToEdit.key!);
-              await incomesApiService.createIncome(newTransaction);
+              const created = await incomesApiService.createIncome(newTransaction);
+              transactionId = created.id ?? null;
             }
           }else if(newTransaction.type === "expense"){
             console.log("editing expense:", newTransaction);
             await expensesApiService.editExpense(newTransaction);
+            transactionId = transactionToEdit.key;
           }else{
             console.log("editing income:", newTransaction);
             await incomesApiService.editIncome(newTransaction);
+            transactionId = transactionToEdit.key;
           }
           onOpenNotification('success', 'Transaction updated successfully');
         }else{
           if(newTransaction.type === "expense"){
             console.log("creating expense:", newTransaction);
-            await expensesApiService.createExpense(newTransaction);
+            const created = await expensesApiService.createExpense(newTransaction);
+            transactionId = created.id ?? null;
           }else{
             console.log("creating income:", newTransaction);
-            await incomesApiService.createIncome(newTransaction);
+            const created = await incomesApiService.createIncome(newTransaction);
+            transactionId = created.id ?? null;
           }
           onOpenNotification('success', 'Transaction created successfully');
         }
+
+        const { data: { user: userForStorage } } = await supabase.auth.getUser();
+        const userId = userForStorage?.id;
+
+        if (userId && transactionId) {
+          const remainingPaths = new Set(
+            receiptFileList
+              .map((f) => f.storagePath)
+              .filter((p): p is string => Boolean(p)),
+          );
+          const pathsToDelete = initialReceiptStoragePathsRef.current.filter((p) => !remainingPaths.has(p));
+          if (pathsToDelete.length > 0) {
+            const { errors: deleteErrors } = await receiptsService.removeReceipts(pathsToDelete);
+            if (deleteErrors.length > 0) {
+              onOpenNotification(
+                'warning',
+                'Transaction saved, but some receipts could not be removed from storage.',
+                deleteErrors.map((e) => e.message).join(' '),
+              );
+            }
+          }
+        }
+
+        const files = receiptFileList
+          .map((f) => f.originFileObj)
+          .filter((file): file is NonNullable<typeof file> => file != null);
+        if (files.length > 0 && transactionId) {
+          if (userId) {
+            const { errors } = await receiptsService.uploadReceipts(userId, transactionId, files as File[]);
+            if (errors.length > 0) {
+              onOpenNotification('warning', 'Transaction saved, but some receipts failed to upload.', errors.map((e) => e.message).join(' '));
+            }
+          }
+        }
+
         await delay(500);
+        onClose();
       }catch(error){
         console.error("Error creating expense:", error);
         onOpenNotification('error', 'Error creating transaction!');
@@ -257,32 +368,36 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
         setDescription("");
         setCategorySelected(null);
         setSubcategorySelected(null);
-        onClose();
+        setReceiptFileList([]);
         uptadeTransactions();
       }
     };
     
-    const onSubcategoryChange = async(colourOptionSelected: ColourOption) => {
-      setSubcategorySelected(colourOptionSelected);
-    }
+    const onSubcategoryChange = (option: ColourOption | null) => {
+      setSubcategorySelected(option);
+    };
 
-    const onCategoryChange = async(colourOptionSelected: ColourOption) => {
-      setCategorySelected(colourOptionSelected);
+    const onCategoryChange = async (option: ColourOption | null) => {
+      setCategorySelected(option);
       setSubcategorySelected(null);
+      setCategory(option);
+      if (!option) {
+        setSubcategoryOptions([]);
+        return;
+      }
       setLoadingSubcategories(true);
-      setCategory(colourOptionSelected);
-      const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(colourOptionSelected.value);
+      const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(option.value);
       const colourOptionsSubcategories: ColourOption[] = [];
       for (const subcategory of subcategories) {
         colourOptionsSubcategories.push({
           value: subcategory.id!,
           label: subcategory.name,
-          color: colourOptionSelected.color,
+          color: option.color,
         });
       }
       setSubcategoryOptions(colourOptionsSubcategories);
       setLoadingSubcategories(false);
-    }
+    };
 
     const onTypeChange = async(value: string) => {
       setLoadingCategories(true);
@@ -311,7 +426,7 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
         closable={{ 'aria-label': 'Close Button' }}
         onClose={onClose}
         open={true}
-        width={565}
+        width={590}
         >
           <form onSubmit={(e) => handleSubmit(e)} className="form-container flex-column">
             <div className="flex split-line">
@@ -365,23 +480,25 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
               </div>
               <div className="input-fields flex">
                 <div className="w-100 mr-1">
-                    <Select
+                    <Select<ColourOption, false>
                       value={categorySelected}
                       options={colourOptions}
                       styles={colourStyles}
                       placeholder="Select a category"
-                      onChange={(e) => onCategoryChange(e as ColourOption)}
+                      onChange={(e) => void onCategoryChange(e)}
                       isSearchable={false}
+                      isClearable
                       isLoading={loadingCategories}
                     />
                 </div>
                 <div className="w-100">
-                  <Select
+                  <Select<ColourOption, false>
                     value={subcategorySelected}
                     options={subcategoryOptions}
                     styles={colourStyles}
                     placeholder="Select a subcategory"
-                    onChange={(e) => onSubcategoryChange(e as ColourOption)}
+                    onChange={(e) => onSubcategoryChange(e)}
+                    isClearable
                     isLoading={loadingSubcategories}
                   />
                 </div>
@@ -391,19 +508,46 @@ export default function NewExpenseModal({onClose, transactionToEdit, uptadeTrans
             <Input size="large" placeholder="Description" defaultValue={transactionToEdit?.description ?? description ?? ""} onChange={(e) => setDescription(e.target.value)}/>
             
             <div className='flex-column receipt-field'>
-              <label htmlFor="receipt" className="py-1">Attach</label>
+              <label htmlFor="receipt" className="py-1">Attach a Receipt</label>
+              <Spin spinning={loadingReceipts}>
               <Upload
-                action="https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload"
+                action=""
                 listType="picture"
-                maxCount={1}
+                maxCount={3}
+                multiple
+                fileList={receiptFileList}
+                onChange={({ fileList }) => setReceiptFileList(fileList)}
+                accept=".png,.jpeg,.jpg,.pdf,image/png,image/jpeg,image/jpg,application/pdf"
+                customRequest={({ onSuccess }) => {
+                  setTimeout(() => {
+                    onSuccess?.(undefined);
+                  }, 0);
+                }}
+                beforeUpload={(file) => {
+                  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+                  const isAllowed = allowedTypes.includes(file.type);
+                  if (!isAllowed) {
+                    message.error('Only PNG, JPEG, JPG and PDF files are allowed.');
+                    return Upload.LIST_IGNORE;
+                  }
+                  const maxSizeMb = 5;
+                  const maxSizeBytes = maxSizeMb * 1024 * 1024;
+                  if (file.size > maxSizeBytes) {
+                    message.error(`File size must not exceed ${maxSizeMb} MB.`);
+                    return Upload.LIST_IGNORE;
+                  }
+                  return true;
+                }}
               >
-                <Button type="primary" icon={<UploadOutlined/>}>
+                <Button type="primary" icon={<UploadOutlined/>} disabled={loadingReceipts}>
                   Upload
                 </Button>
               </Upload>
+              </Spin>
+              <span className="receipt-field-hint">Allowed formats: PNG, JPEG, JPG and PDF. Maximum size: 5 MB. Up to 3 files.</span>
             </div>
-
-            <Button iconPosition='end' loading={sendingTransaction} type="primary" htmlType="submit" className="mt-4 button-text">Submit</Button>
+            
+            <Button iconPosition='end' loading={sendingTransaction} disabled={loadingReceipts} type="primary" htmlType="submit" className="mt-4 font-weight-500">{transactionToEdit ? "Update" : "Submit"}</Button>
           </form>
         </Drawer>
       </>

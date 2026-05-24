@@ -52,5 +52,10 @@
     height: 38px !important;
 }
 .receipt-field{
-
+    .receipt-field-hint{
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+        margin-top: 6px;
+        display: block;
+    }
 }
