@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.4",
     "@mui/x-charts": "^8.14.1",
     "@supabase/supabase-js": "^2.95.3",
+    "@tailwindcss/vite": "^4.2.4",
     "antd": "^5.27.4",
     "chart.js": "^4.5.0",
     "chroma-js": "^3.1.2",
@@ -26,7 +27,8 @@
     "react-highlight-words": "^0.21.0",
     "react-router-dom": "^7.9.3",
     "react-select": "^5.10.2",
-    "sass": "^1.90.0"
+    "sass": "^1.90.0",
+    "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
