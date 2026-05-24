@@ -259,15 +259,15 @@ h6{
 }
 
 // Paragraphs
-p{
-    @include paragraph(p3, desktop);
-    @include layout.responsive-screen(mobile){
-        @include paragraph(p3, mobile);
-    }
-    @include layout.responsive-screen(small-mobile){
-        @include paragraph(p3, smallmobile);
-    }
-}
+// p{
+//     @include paragraph(p3, desktop);
+//     @include layout.responsive-screen(mobile){
+//         @include paragraph(p3, mobile);
+//     }
+//     @include layout.responsive-screen(small-mobile){
+//         @include paragraph(p3, smallmobile);
+//     }
+// }
 
 .p1{
     @include paragraph(p1, desktop);
