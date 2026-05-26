@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import './categoryCard.scss'
-import { Button, ColorPicker, Space, Input, Popconfirm, message, notification } from 'antd';
+import { Button, ColorPicker, Space, Input, Popconfirm, notification } from 'antd';
 import type { Subcategory } from '../../../types/subcategory.interface';
 import { subcategoriesApiService } from '../../../services/api/subcategories/subcategories.api';
 import { categoriesApiService } from '../../../services/api/categories/categories.api';

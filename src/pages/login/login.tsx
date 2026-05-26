@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './login.scss';
 import { Button, Checkbox, Form, Input, message } from 'antd';
-import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined, RightOutlined, WalletOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth/auth.service';
 
