@@ -4,6 +4,7 @@ import { Button, Checkbox, Form, Input, message } from 'antd';
 import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth/auth.service';
+import logoWhite from '../../assets/logo-white-no-background.svg';
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -72,7 +73,7 @@ export default function LoginPage() {
             <div className="login-card flex">
                 <div className="login-card-left flex-column p-6">
                     <div className="login-branding flex mb-6 gap-2">
-                        <img src="./src/assets/logo-white-no-background.svg" alt="Heavenance" height={50} />
+                        <img src={logoWhite} alt="Heavenance" className='h-12' />
                         <h4 className="login-brand-text h1 font-weight-400">Heavenance</h4>
                     </div>
                     <h3 className="login-tagline h4 font-weight-700 mb-3">

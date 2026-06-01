@@ -1,3 +1,3 @@
 export const environment = {
-  backendApiUrl: 'https://finance-manager-backend-928640916839.southamerica-east1.run.app',
+  backendApiUrl: 'http://localhost:3000',
 } as const;
