@@ -10,7 +10,8 @@ type SidebarProps = {
     onOpenDashboardPage: () => void;
     onOpenCategoriesPage: () => void;
 };
-  const items = [{key: "/" , label: "Home"},
+  const items = [
+    // {key: "/" , label: "Home"},
     {key: "/reports" , label: "Reports"},
     {key: "/transactions" , label: "Transactions"},
     {key: "/categories" , label: "Categories"},
@@ -28,7 +29,7 @@ export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOp
     const {
         token: { colorBgContainer},
       } = theme.useToken();
-      const items2: MenuProps['items'] = [HomeOutlined, BarChartOutlined, UnorderedListOutlined, TagOutlined,
+      const items2: MenuProps['items'] = [/*HomeOutlined,*/ BarChartOutlined, UnorderedListOutlined, TagOutlined,
         //  CreditCardOutlined 
         ].map(
         (icon, index) => {      

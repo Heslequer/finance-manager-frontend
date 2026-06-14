@@ -69,9 +69,11 @@ export default function Reports() {
       try {
         const expenseCategoryIds = await expensesApiService.getExpenseCategoriesIds();
         const validExpenseIds = expenseCategoryIds.filter((id): id is string => id != null && id !== 'null' && id !== 'undefined');
+        let expenseCategories: Category[] = [];
+        let expenseSubcategories: Subcategory[] = [];
         if (validExpenseIds.length > 0) {
-          const expenseCategories = await categoriesApiService.getCategoriesByIds(validExpenseIds);
-          const expenseSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validExpenseIds);
+          expenseCategories = await categoriesApiService.getCategoriesByIds(validExpenseIds);
+          expenseSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validExpenseIds);
           setExpenseSubcategories(expenseSubcategories);
           setExpenseCategoriesFull(expenseCategories);
         } else {
@@ -81,15 +83,32 @@ export default function Reports() {
 
         const incomeCategoryIds = await incomesApiService.getIncomeCategoriesIds();
         const validIncomeIds = incomeCategoryIds.filter((id): id is string => id != null && id !== 'null' && id !== 'undefined');
+        let incomeCategories: Category[] = [];
+        let incomeSubcategories: Subcategory[] = [];
         if (validIncomeIds.length > 0) {
-          const incomeCategories = await categoriesApiService.getCategoriesByIds(validIncomeIds);
-          const incomeSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validIncomeIds);
+          incomeCategories = await categoriesApiService.getCategoriesByIds(validIncomeIds);
+          incomeSubcategories = await subcategoriesApiService.getSubcategoriesByCategoryIds(validIncomeIds);
           setIncomeSubcategories(incomeSubcategories);
           setIncomeCategoriesFull(incomeCategories);
         } else {
           setIncomeSubcategories([]);
           setIncomeCategoriesFull([]);
         }
+
+        const initialInternal = new Set<string>();
+        expenseCategories.forEach(category => {
+          initialInternal.add(`expense-category-${category.id}`);
+        });
+        expenseSubcategories.forEach(sub => {
+          initialInternal.add(`expense-subcategory-${sub.id}`);
+        });
+        incomeCategories.forEach(category => {
+          initialInternal.add(`income-category-${category.id}`);
+        });
+        incomeSubcategories.forEach(sub => {
+          initialInternal.add(`income-subcategory-${sub.id}`);
+        });
+        setInternalSelectedCategories(initialInternal);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
@@ -101,7 +120,6 @@ export default function Reports() {
   // Apply "last 30 days" filter on initial load
   useEffect(() => {
     applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Function to calculate date range based on period
