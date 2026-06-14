@@ -2,7 +2,7 @@ import './sidebar.scss'
 import React, { useState, useEffect } from 'react';
 import { ConfigProvider, Layout, Menu, theme} from 'antd';
 import type { MenuProps } from 'antd';
-import { UnorderedListOutlined, HomeOutlined, BarChartOutlined, TagOutlined, LogoutOutlined } from '@ant-design/icons';
+import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 const { Sider } = Layout;
