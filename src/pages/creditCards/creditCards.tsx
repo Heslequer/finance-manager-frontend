@@ -3,7 +3,7 @@ import { Layout, ConfigProvider, Drawer, Button, Spin, Empty, Progress, Popconfi
 import { Content } from 'antd/es/layout/layout';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
-import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, MoreOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import NewCardDrawer from './newCreditCardDrawer/newCreditCard';
 import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
@@ -55,7 +55,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [transactions, setTransactions] = useState<DataType[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const pageSize = 5;
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [categoryTotals, setCategoryTotals] = useState<{ categoryName: string; amount: number; color: string }[]>([]);
   const [allCardTransactions, setAllCardTransactions] = useState<TransactionItem[]>([]);

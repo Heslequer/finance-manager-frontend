@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { ChangeEvent } from 'react';
 import { Checkbox, Form, InputNumber, Row, notification } from 'antd';
 import { Input, ColorPicker } from 'antd';
@@ -49,8 +49,9 @@ function gradientStepsToCss(steps: any[]): string {
 
 export default function NewCardDrawer({ onClose, onSuccess, cardToEdit, onLoadingChange }: NewCardDrawerProps) {
     const [form] = Form.useForm();
-    const [isLoading, setIsLoading] = useState(false);
     const [api, contextHolder] = notification.useNotification();
+
+
 
     const openNotification = (type: 'success' | 'info' | 'warning' | 'error', title: string, description?: string) => {
         api[type]({
@@ -79,7 +80,6 @@ export default function NewCardDrawer({ onClose, onSuccess, cardToEdit, onLoadin
     }, [cardToEdit, form]);
 
     const onFinish = async (values: any) => {
-        setIsLoading(true);
         onLoadingChange?.(true);
         let cardGradientStr = '';
         if (values.cardGradient) {
@@ -122,8 +122,7 @@ export default function NewCardDrawer({ onClose, onSuccess, cardToEdit, onLoadin
             console.error("Error saving credit card:", error);
             openNotification('error', cardToEdit?.id ? 'Error updating credit card!' : 'Error creating credit card!');
         } finally {
-            setIsLoading(false);
-            onLoadingChange?.(false);
+        onLoadingChange?.(false);
         }
     }
 
