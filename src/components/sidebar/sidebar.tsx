@@ -2,7 +2,7 @@ import './sidebar.scss'
 import React, { useState, useEffect } from 'react';
 import { ConfigProvider, Layout, Menu, theme} from 'antd';
 import type { MenuProps } from 'antd';
-import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined } from '@ant-design/icons';
+import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined, CreditCardOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 const { Sider } = Layout;
@@ -15,7 +15,7 @@ type SidebarProps = {
     {key: "/reports" , label: "Reports"},
     {key: "/transactions" , label: "Transactions"},
     {key: "/categories" , label: "Categories"},
-    // {key: "/credit-cards" , label: "Credit Cards"},
+    {key: "/credit-cards" , label: "Credit Cards"},
   ] 
  
 export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOpenCategoriesPage: _onOpenCategoriesPage }: SidebarProps) {
@@ -30,7 +30,7 @@ export default function Sidebar({onOpenDashboardPage: _onOpenDashboardPage, onOp
         token: { colorBgContainer},
       } = theme.useToken();
       const items2: MenuProps['items'] = [/*HomeOutlined,*/ BarChartOutlined, UnorderedListOutlined, TagOutlined,
-        //  CreditCardOutlined 
+         CreditCardOutlined 
         ].map(
         (icon, index) => {      
           return {

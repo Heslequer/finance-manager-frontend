@@ -7,7 +7,7 @@ import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption } from './docs/data';
-import { DatePicker, Input, Space, Button, Radio, Upload, Drawer, message, Spin } from 'antd';
+import { DatePicker, Input, Space, Button, Radio, Upload, Drawer, message, Spin, Select as AntdSelect } from 'antd';
 import type { UploadFile } from 'antd';
 
 /** Existing bucket object path, set when receipts are loaded from Storage */
@@ -19,12 +19,15 @@ import type { DataType } from '../../pages/reports/transactions/transactions';
 import dayjs, { Dayjs } from 'dayjs';
 import { receiptsService } from '../../services/receipts/receipts.service';
 import { supabase } from '../../lib/supabase';
+import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
+import type { CreditCard } from '../../types/credit-card.interface';
 
 type ModalProps = {
     onClose: () => void;
     transactionToEdit?: DataType | null;
     uptadeTransactions: () => void;
     onOpenNotification: (type: string, message: string, description?: string) => any;
+    origin?: 'credit-cards' | 'transactions';
 };
 
 // const colourStyles: StylesConfig<ColourOption, true> = {
@@ -133,7 +136,7 @@ export const colourStyles: StylesConfig<ColourOption> = {
 };
 
 
-export default function NewTransactionModal({onClose, transactionToEdit, uptadeTransactions, onOpenNotification}: ModalProps) {
+export default function NewTransactionModal({onClose, transactionToEdit, uptadeTransactions, onOpenNotification, origin = 'transactions'}: ModalProps) {
     const [amount, setAmount] = useState<string>("");
     const [date, setDate] = useState<Dayjs | null>(null);
     const [description, setDescription] = useState<string | null>(null);
@@ -145,12 +148,18 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
     // const [isLoading, setIsLoading] = useState(false);
     const [categorySelected, setCategorySelected] = useState<ColourOption | null>(null);
     const [subcategorySelected, setSubcategorySelected] = useState<ColourOption | null>(null);
-    const [type, setType] = useState<string>("");
+    const [type, setType] = useState<string>("expense");
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [loadingSubcategories, setLoadingSubcategories] = useState(false);
     const [defaultDate, setDefaultDate] = useState<any| null>(null);
     const [sendingTransaction, setSendingTransaction] = useState<boolean>(false);
     const [receiptFileList, setReceiptFileList] = useState<ReceiptUploadFile[]>([]);
+
+    const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+    const [selectedCreditCard, setSelectedCreditCard] = useState<string | null>(null);
+    const [installmentNumber, setInstallmentNumber] = useState<number | null>(null);
+    const [totalInstallments, setTotalInstallments] = useState<number | null>(null);
+    const [loadingCards, setLoadingCards] = useState(false);
     /** Paths loaded when opening edit; used to delete from bucket when user removes items before submit */
     const initialReceiptStoragePathsRef = useRef<string[]>([]);
     const [loadingReceipts, setLoadingReceipts] = useState(false);
@@ -210,8 +219,15 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
           return;
         }
 
-        const date = new Date(transactionToEdit.date);
-        const formatted = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        setAmount(transactionToEdit.amount.toFixed(2).replace(".", ","));
+        setDescription(transactionToEdit.description ?? "");
+        setType(transactionToEdit.type);
+
+        const parsedDate = dayjs(transactionToEdit.date);
+        setDate(parsedDate.isValid() ? parsedDate : null);
+
+        const dateObj = new Date(transactionToEdit.date);
+        const formatted = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
         setDefaultDate(formatted);
 
         const editCategory = transactionToEdit.category[0];
@@ -254,12 +270,44 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
         } else {
           setSubcategorySelected(null);
         }
+
+        if (transactionToEdit.installment_number !== undefined) {
+          setInstallmentNumber(transactionToEdit.installment_number);
+        }
+        if (transactionToEdit.total_installments !== undefined) {
+          setTotalInstallments(transactionToEdit.total_installments);
+        }
       };
       void fetchData();
       return () => {
         cancelled = true;
       };
     }, [transactionToEdit?.key, transactionToEdit?.type, type]);
+
+    useEffect(() => {
+      let cancelled = false;
+      if (origin === 'credit-cards') {
+        const fetchCards = async () => {
+          setLoadingCards(true);
+          try {
+            const data = await creditCardsApiService.getAllCreditCards();
+            if (cancelled) return;
+            setCreditCards(data);
+            if (transactionToEdit?.credit_card_id) {
+              setSelectedCreditCard(transactionToEdit.credit_card_id);
+            }
+          } catch (error) {
+            console.error('Error fetching credit cards:', error);
+          } finally {
+            if (!cancelled) setLoadingCards(false);
+          }
+        };
+        void fetchCards();
+      }
+      return () => {
+        cancelled = true;
+      };
+    }, [origin, transactionToEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -273,14 +321,17 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
           : dayjs().format('YYYY-MM-DD');   // new transaction without date = today
 
       const newTransaction = {
-        type: transactionToEdit?.type ?? type,
-        amount: amount ? Number(amount.replace(",",".")) :  transactionToEdit?.amount as number,
+        type: type,
+        amount: amount ? Number(amount.replace(",", ".")) : 0,
         date: dateForApi,
-        description: description === "" ? description : description ?? transactionToEdit?.description,
+        description: description ?? "",
         // JSON.stringify drops `undefined`, so the API would not clear FKs; send `null` to persist cleared selects.
         category_id: categorySelected?.value ?? null,
         subcategory_id: subcategorySelected?.value ?? null,
         id: transactionToEdit?.key,
+        credit_card_id: origin === 'credit-cards' ? selectedCreditCard : null,
+        installment_number: (origin === 'credit-cards' && type === 'expense') ? installmentNumber : null,
+        total_installments: (origin === 'credit-cards' && type === 'expense') ? totalInstallments : null,
       };
       console.log("description", description);
 
@@ -288,7 +339,7 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
 
       try{
         if(transactionToEdit){
-          if(newTransaction.type && type)
+          if(newTransaction.type !== transactionToEdit.type)
           {
             if(newTransaction.type === "expense"){
               await incomesApiService.deleteIncome(transactionToEdit.key!);
@@ -369,6 +420,9 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
         setCategorySelected(null);
         setSubcategorySelected(null);
         setReceiptFileList([]);
+        setSelectedCreditCard(null);
+        setInstallmentNumber(null);
+        setTotalInstallments(null);
         uptadeTransactions();
       }
     };
@@ -418,6 +472,11 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
     };
 
     const dateFormat = 'YYYY/MM/DD';
+
+    const creditCardOptions = creditCards.map((card) => ({
+      value: card.id ?? "",
+      label: `${card.card_name} *${card.card_digits}`,
+    }));
     
     return (
       <>
@@ -429,15 +488,39 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
         width={590}
         >
           <form onSubmit={(e) => handleSubmit(e)} className="form-container flex-column">
-            <div className="flex split-line">
-              <div className='flex-column type-field'>
-                <label htmlFor="type" className="py-1">Transaction type</label>
-                <Radio.Group className="input-type-category" defaultValue={transactionToEdit?.type ?? type} buttonStyle="solid" onChange={(e) => onTypeChange(e.target.value)}>
-                      <Radio.Button value="expense">Expense</Radio.Button>
-                      <Radio.Button value="income">Income</Radio.Button>
-                </Radio.Group >
+            {origin === 'credit-cards' ? (
+              <div className="flex justify-between items-center split-line">
+                <div className='flex-column type-field w-100 mr-1'>
+                  <label htmlFor="type" className="py-1">Transaction type</label>
+                  <Radio.Group className="input-type-category" defaultValue={transactionToEdit?.type ?? type} buttonStyle="solid" onChange={(e) => onTypeChange(e.target.value)}>
+                        <Radio.Button value="expense">Expense</Radio.Button>
+                        <Radio.Button value="income">Income</Radio.Button>
+                  </Radio.Group >
+                </div>
+                <div className="flex-column w-100">
+                  <label htmlFor="creditCard" className="py-1">Credit Card</label>
+                   <AntdSelect
+                    value={selectedCreditCard}
+                    options={creditCardOptions}
+                    placeholder="Select a credit card"
+                    onChange={(val) => setSelectedCreditCard(val)}
+                    allowClear
+                    loading={loadingCards}
+                    style={{ width: '100%', height: '38px' }}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex split-line">
+                <div className='flex-column type-field'>
+                  <label htmlFor="type" className="py-1">Transaction type</label>
+                  <Radio.Group className="input-type-category" value={type} buttonStyle="solid" onChange={(e) => onTypeChange(e.target.value)}>
+                        <Radio.Button value="expense">Expense</Radio.Button>
+                        <Radio.Button value="income">Income</Radio.Button>
+                  </Radio.Group >
+                </div>
+              </div>
+            )}
             <div className="flex-column split-line">
               <div className="input-labels flex">
                 <div className="w-100 mr-1 my-1">
@@ -450,7 +533,7 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
               <div className="input-fields flex">
                 <div className="w-100 mr-1">
                   <CurrencyInput
-                    defaultValue={transactionToEdit?.amount.toFixed(2).replace(".", ",") ?? amount}
+                    value={amount}
                     placeholder='R$ 0,00'
                     onValueChange={(val) => setAmount(val ?? "")}
                     decimalScale={2}
@@ -504,8 +587,42 @@ export default function NewTransactionModal({onClose, transactionToEdit, uptadeT
                 </div>
               </div>
             </div>
+
+            {origin === 'credit-cards' && (transactionToEdit?.type ?? type) === 'expense' && (
+              <div className="flex-column split-line">
+                <div className="input-labels flex">
+                  <div className="w-100 mr-1 my-1">
+                    <label className="py-1">Installment Number</label>
+                  </div>
+                  <div className="w-100 my-1">
+                    <label className="py-1">Total Installments</label>
+                  </div>
+                </div>
+                <div className="input-fields flex">
+                  <div className="w-100 mr-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={installmentNumber ?? ""}
+                      placeholder="e.g. 1"
+                      onChange={(e) => setInstallmentNumber(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+                  <div className="w-100">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={totalInstallments ?? ""}
+                      placeholder="e.g. 12"
+                      onChange={(e) => setTotalInstallments(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <label htmlFor="description" className="py-1">Description</label>
-            <Input size="large" placeholder="Description" defaultValue={transactionToEdit?.description ?? description ?? ""} onChange={(e) => setDescription(e.target.value)}/>
+            <Input size="large" placeholder="Description" value={description ?? ""} onChange={(e) => setDescription(e.target.value)}/>
             
             <div className='flex-column receipt-field'>
               <label htmlFor="receipt" className="py-1">Attach a Receipt</label>

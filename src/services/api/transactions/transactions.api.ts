@@ -10,6 +10,10 @@ export type TransactionItem = {
   subcategory_id: string | null;
   categories: { id?: string; name?: string; color_hex?: string; type?: string } | null;
   subcategories: { id?: string; name?: string; category_id?: string } | null;
+  credit_card_id?: string | null;
+  installment_number?: number | null;
+  total_installments?: number | null;
+  created_at?: string;
 };
 
 export type TransactionsQuery = {
@@ -19,6 +23,8 @@ export type TransactionsQuery = {
   dateFrom?: string;
   dateTo?: string;
   categoryId?: string;
+  creditCardId?: string;
+  search?: string;
 };
 
 export type TransactionsResponse = {
@@ -35,6 +41,8 @@ export class TransactionsApiService {
     if (query.dateFrom != null) params.set('dateFrom', query.dateFrom);
     if (query.dateTo != null) params.set('dateTo', query.dateTo);
     if (query.categoryId != null) params.set('categoryId', query.categoryId);
+    if (query.creditCardId != null) params.set('creditCardId', query.creditCardId);
+    if (query.search != null) params.set('search', query.search);
 
     const qs = params.toString();
     const url = qs ? `/transactions?${qs}` : '/transactions';

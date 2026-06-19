@@ -24,6 +24,7 @@ export class IncomesApiService {
         description: income.description,
         category_id: income.category_id,
         subcategory_id: income.subcategory_id,
+        credit_card_id: income.credit_card_id,
       }),
     });
     return normalizeIncome(data ?? {});
@@ -58,13 +59,14 @@ export class IncomesApiService {
   async editIncome(income: Income): Promise<Income> {
     const id = income.id != null ? String(income.id) : '';
     const data = await apiRequest<Record<string, unknown>>(`/incomes/${id}`, {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify({
         amount: income.amount,
         date: income.date,
         description: income.description,
         category_id: income.category_id,
         subcategory_id: income.subcategory_id,
+        credit_card_id: income.credit_card_id,
       }),
     });
     return normalizeIncome(data ?? {});

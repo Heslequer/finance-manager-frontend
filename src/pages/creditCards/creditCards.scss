@@ -1,0 +1,11 @@
+.container-tags {
+  display: flex;
+  align-items: center;
+
+  .tag-category {
+    z-index: 1000;
+  }
+  .tag-subcategory {
+    z-index: 999;
+  }
+}

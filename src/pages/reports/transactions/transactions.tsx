@@ -38,6 +38,10 @@ export interface DataType {
   date: string;
   dateRaw: string;
   description: string | undefined;
+  credit_card_id?: string | null;
+  installment_number?: number | null;
+  total_installments?: number | null;
+  created_at?: string;
 }
 type ModalProps = {
   onOpenNotification: (type: string, message: string, description?: string) => any;
@@ -709,6 +713,9 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
       subcategory,
       date: formatDateOnlyForDisplay(item.date),
       dateRaw,
+      credit_card_id: item.credit_card_id,
+      installment_number: item.installment_number,
+      total_installments: item.total_installments,
     };
   };
 
@@ -785,7 +792,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
             <Layout>
               <Content>
                 {openTransactionDrawer && (
-                    <NewexpenseModal onClose={() => setOpenTransactionDrawer(false)} uptadeTransactions={() =>  setTableKey(prev => prev + 1)} transactionToEdit={transactionToEdit} onOpenNotification={(type: string, message: string, description?: string) => onOpenNotification(type, message, description)} />
+                    <NewexpenseModal onClose={() => setOpenTransactionDrawer(false)} uptadeTransactions={() =>  setTableKey(prev => prev + 1)} transactionToEdit={transactionToEdit} onOpenNotification={(type: string, message: string, description?: string) => onOpenNotification(type, message, description)} origin="transactions" />
                 )}
                 <ImportOfxModal
                   open={importOfxOpen}
@@ -795,7 +802,7 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                 />
                 <div className="grid-accurate-18 main-container flex-column p-5">
                     <div className="header flex">
-                        <h4 className='font-weight-500'>All Transactions</h4>
+                        <h4>All Transactions</h4>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <Button icon={<UploadOutlined />} onClick={() => setImportOfxOpen(true)}>Import</Button>
                           <Button type="primary" onClick={() => {setOpenTransactionDrawer(!openTransactionDrawer); setTransactionToEdit(null)}}>Add Transaction</Button>

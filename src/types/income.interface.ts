@@ -8,4 +8,5 @@ export interface Income {
     subcategory_id?: string | null;
     created_at?: string;
     updated_at?: string;
+    credit_card_id?: string | null;
 }

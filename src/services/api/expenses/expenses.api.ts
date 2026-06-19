@@ -24,6 +24,9 @@ export class ExpensesApiService {
         description: expense.description,
         category_id: expense.category_id,
         subcategory_id: expense.subcategory_id,
+        credit_card_id: expense.credit_card_id,
+        installment_number: expense.installment_number,
+        total_installments: expense.total_installments,
       }),
     });
     return normalizeExpense(data ?? {});
@@ -77,13 +80,16 @@ export class ExpensesApiService {
   async editExpense(expense: Expense): Promise<Expense> {
     const id = expense.id != null ? String(expense.id) : '';
     const data = await apiRequest<Record<string, unknown>>(`/expenses/${id}`, {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify({
         amount: expense.amount,
         date: expense.date,
         description: expense.description,
         category_id: expense.category_id,
         subcategory_id: expense.subcategory_id,
+        credit_card_id: expense.credit_card_id,
+        installment_number: expense.installment_number,
+        total_installments: expense.total_installments,
       }),
     });
     return normalizeExpense(data ?? {});
