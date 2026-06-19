@@ -69,7 +69,7 @@ export default function LoginPage() {
     return (
         <>
             {contextHolder}
-            <div className="login-page flex-center">
+        <div className="login-page flex-center">
             <div className="login-card flex">
                 <div className="login-card-left flex-column p-6">
                     <div className="login-branding flex mb-6 gap-2">
