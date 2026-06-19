@@ -1,5 +1,5 @@
 import './creditCards.scss'
-import { Layout, ConfigProvider, Drawer, Button, Spin, Empty, Progress, Popconfirm, Input, Divider, Tag, Pagination } from 'antd';
+import { Layout, ConfigProvider, Drawer, Button, Spin, Empty, Progress, Popconfirm, Input, Divider, Tag, Pagination, Popover, Checkbox } from 'antd';
 import { Content } from 'antd/es/layout/layout';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +60,9 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [categoryTotals, setCategoryTotals] = useState<{ categoryName: string; amount: number; color: string }[]>([]);
   const [allCardTransactions, setAllCardTransactions] = useState<TransactionItem[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [tempSelectedCategoryIds, setTempSelectedCategoryIds] = useState<string[]>([]);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const transactionItemToDataType = (item: TransactionItem): DataType => {
     const category = item.categories
@@ -129,6 +132,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
         pageSize: pageSize,
         creditCardId: 'all',
         search: searchText,
+        categoryId: selectedCategoryIds.join(','),
       });
       const rows = res.data.map(transactionItemToDataType);
       rows.sort((a, b) => {
@@ -155,7 +159,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
 
   useEffect(() => {
     fetchTransactions();
-  }, [currentPage, pageSize, searchText]);
+  }, [currentPage, pageSize, searchText, selectedCategoryIds]);
 
   const showDrawer = () => {
     setCardToEdit(null);
@@ -240,6 +244,106 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
     setSearchText(value);
     setCurrentPage(1);
   };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setPopoverOpen(newOpen);
+    if (newOpen) {
+      setTempSelectedCategoryIds(selectedCategoryIds);
+    }
+  };
+
+  const toggleTempKey = (id: string) => {
+    setTempSelectedCategoryIds(prev =>
+      prev.includes(id) ? prev.filter(k => k !== id) : [...prev, id]
+    );
+  };
+
+  const handleReset = () => {
+    setTempSelectedCategoryIds([]);
+    setSelectedCategoryIds([]);
+    setCurrentPage(1);
+    setPopoverOpen(false);
+  };
+
+  const handleOk = () => {
+    setSelectedCategoryIds(tempSelectedCategoryIds);
+    setCurrentPage(1);
+    setPopoverOpen(false);
+  };
+
+  const uniqueIncomeCategories = Array.from(
+    new Map(
+      allCardTransactions
+        .filter(tx => tx.type === 'income' && tx.categories?.id)
+        .map(tx => [tx.categories!.id, tx.categories!])
+    ).values()
+  );
+
+  const uniqueExpenseCategories = Array.from(
+    new Map(
+      allCardTransactions
+        .filter(tx => tx.type === 'expense' && tx.categories?.id)
+        .map(tx => [tx.categories!.id, tx.categories!])
+    ).values()
+  );
+
+  const popoverContent = (
+    <div style={{ padding: 8, minWidth: 220 }} onKeyDown={(e) => e.stopPropagation()}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Incomes</div>
+        {uniqueIncomeCategories.length === 0 ? (
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>No income category</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {uniqueIncomeCategories.map((cat) => {
+              const name = cat.name ? cat.name.charAt(0).toUpperCase() + cat.name.slice(1) : 'Uncategorized';
+              return (
+                <Checkbox
+                  key={cat.id}
+                  checked={tempSelectedCategoryIds.includes(cat.id!)}
+                  onChange={() => toggleTempKey(cat.id!)}
+                >
+                  {name}
+                </Checkbox>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, marginBottom: 6, color: 'rgba(0,0,0,0.65)', fontSize: 12 }}>Expenses</div>
+        {uniqueExpenseCategories.length === 0 ? (
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>No expense category</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {uniqueExpenseCategories.map((cat) => {
+              const name = cat.name ? cat.name.charAt(0).toUpperCase() + cat.name.slice(1) : 'Uncategorized';
+              return (
+                <Checkbox
+                  key={cat.id}
+                  checked={tempSelectedCategoryIds.includes(cat.id!)}
+                  onChange={() => toggleTempKey(cat.id!)}
+                >
+                  {name}
+                </Checkbox>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-space-between gap-2">
+        <Button 
+          type="link" 
+          size="small" 
+          onClick={handleReset} 
+          style={{ width: 90 }}>Reset
+        </Button>
+        <Button type="primary" size="small" onClick={handleOk} style={{ width: 90 }}>OK</Button>
+      </div>
+    </div>
+  );
 
   const fetchCards = async () => {
     setIsLoading(true);
@@ -481,7 +585,19 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                         </div>
                         <div className='flex justify-between gap-2'>
                            <Input.Search placeholder="input search text" onSearch={onSearch} size="large" allowClear />
-                          <Button type='default' onClick={showDrawer} icon={<FilterOutlined />} size="large"></Button>
+                           <Popover
+                            content={popoverContent}
+                            trigger="click"
+                            open={popoverOpen}
+                            onOpenChange={handleOpenChange}
+                            placement="bottomRight"
+                          >
+                            <Button 
+                              type={selectedCategoryIds.length > 0 ? 'primary' : 'default'} 
+                              icon={<FilterOutlined />} 
+                              size="large"
+                            />
+                          </Popover>
                         </div>
                       </div>
                       <Divider/>
