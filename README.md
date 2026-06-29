@@ -1,6 +1,6 @@
 # Finance Manager – Frontend
 
-Web app for **Finance Manager**, a personal finance application to manage income, expenses, categories, subcategories, and transactions. Built with React and Vite.
+Web app for **Finance Manager**, a personal finance application to manage income, expenses, categories, subcategories, transactions, and credit cards. Built with React and Vite.
 
 **Live:** [https://heavenance.web.app](https://heavenance.web.app)
 
@@ -75,9 +75,9 @@ The app runs at `http://localhost:5173` in development.
 
 - **`src/`** – Source code  
   - **`components/`** – Reusable UI (sidebar, modals for expense/income/category, OFX import, etc.)  
-  - **`pages/`** – Login, Sign up, Dashboard, Categories, Transactions  
+  - **`pages/`** – Login, Sign up, Dashboard, Categories, Transactions, Credit Cards  
   - **`routes/`** – React Router setup  
-  - **`services/`** – Auth, Supabase client, API clients (categories, expenses, incomes, transactions, users), OFX import  
+  - **`services/`** – Auth, Supabase client, API clients (categories, expenses, incomes, transactions, users, credit cards), OFX import  
   - **`environments/`** – Dev and production config (e.g. backend API URL)  
   - **`styles/`** – Global SASS (layout, typography, colors, spacing, icons)  
   - **`types/`** – TypeScript interfaces  
@@ -94,6 +94,7 @@ The app runs at `http://localhost:5173` in development.
 - **Dashboard:** Overview and charts (income/expenses)  
 - **Categories & subcategories:** CRUD with custom colors  
 - **Transactions:** List, filter, add income/expense, OFX import  
+- **Credit Cards:** Manage credit cards with custom limits, valid-thru dates, bank names, and visual gradients. Tracks used vs. available limit and transaction history per card  
 - **Notifications:** In-app feedback via Ant Design  
 
 ## License
