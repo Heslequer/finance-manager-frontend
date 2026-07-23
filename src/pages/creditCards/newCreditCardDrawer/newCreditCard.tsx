@@ -21,20 +21,6 @@ type NewCardDrawerProps = {
     cardToEdit?: CreditCard | null;
     onLoadingChange?: (loading: boolean) => void;
 };
-
-function parseGradientString(gradientStr: string): { color: string; percent: number }[] {
-    if (!gradientStr) return [];
-    const regex = /(rgba?\([^\)]+\)|#[0-9a-fA-F]{3,8})\s+(\d+)%/g;
-    const matches = [...gradientStr.matchAll(regex)];
-    if (matches.length === 0) {
-        return [];
-    }
-    return matches.map(match => ({
-        color: match[1],
-        percent: Number(match[2]),
-    }));
-}
-
 function gradientStepsToCss(steps: any[]): string {
     const stepsStr = steps
         .map(step => {

@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import NewCardDrawer from './newCreditCardDrawer/newCreditCard';
 import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
 import type { CreditCard } from '../../types/credit-card.interface';
-import type { ProgressProps, ConfigProviderProps  } from 'antd';
+import type { ProgressProps } from 'antd';
 import type { SearchProps } from 'antd/es/input';
 import NewTransactionModal from '../../components/newExpanseModal/newTransactionModal';
 import { transactionsApiService } from '../../services/api/transactions/transactions.api';
@@ -24,7 +24,7 @@ type CreditCardsProps = {
   onOpenNotification: (type: string, message: string, description?: string) => any;
 };
 
-type SizeType = ConfigProviderProps['componentSize'];
+
 
 
 function formatDateOnlyForDisplay(isoDate: string | null | undefined): string {
@@ -66,7 +66,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [tempSelectedCategoryIds, setTempSelectedCategoryIds] = useState<string[]>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const [size, setSize] = useState<SizeType>('large'); // default is 'medium'
+
 
 
   const transactionItemToDataType = (item: TransactionItem): DataType => {

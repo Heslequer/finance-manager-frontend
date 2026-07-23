@@ -1,6 +1,6 @@
 import './sidebar.scss'
 import React from 'react';
-import { ConfigProvider, Layout, Menu, theme } from 'antd';
+import { ConfigProvider, Layout, Menu } from 'antd';
 import logo from '../../assets/logo-no-background.svg';
 import type { MenuProps } from 'antd';
 import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined, CreditCardOutlined } from '@ant-design/icons';
@@ -23,9 +23,6 @@ export default function Sidebar({ onOpenDashboardPage: _onOpenDashboardPage, onO
   const navigate = useNavigate();
   const location = useLocation();
 
-  const {
-    token: { colorBgContainer },
-  } = theme.useToken();
   const items2: MenuProps['items'] = [/*HomeOutlined,*/ BarChartOutlined, UnorderedListOutlined, TagOutlined,
     CreditCardOutlined
   ].map(

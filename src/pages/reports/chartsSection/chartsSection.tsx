@@ -55,7 +55,6 @@ export default function ChartsSection({
   const [incomesLineData, setIncomesLineData] = useState<number[]>([]);
   const [expensesLineData, setExpensesLineData] = useState<number[]>([]);
   const [lineChartTimeframe, setLineChartTimeframe] = useState<string>('day');
-  const [isLineChartExpanded, _setIsLineChartExpanded] = useState<boolean>(false);
 
   // States for Category Ranking
   const [rankingData, setRankingData] = useState<Array<{ title: string; transactionCount: number; amount: number; percentage: number; type: 'income' | 'expense'; color: string }>>([]);
