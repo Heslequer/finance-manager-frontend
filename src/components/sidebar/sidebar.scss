@@ -29,9 +29,6 @@ a{
     }
 
 }
-.side-bar{
-    // justify-content: center;
-}
 ul{
     align-items: flex-center;
     list-style: none;
@@ -54,5 +51,17 @@ ul{
 .ant-menu-item{
     span{
         margin-right: 10px !important;
+    }
+    
+    &.ant-menu-item-selected::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 25% !important;
+        height: 50% !important;
+        width: 4px !important;
+        background-color: #ffffff !important;
+        border-radius: 0 4px 4px 0 !important;
+        z-index: 10 !important;
     }
 }

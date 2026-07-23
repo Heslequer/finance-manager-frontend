@@ -802,7 +802,10 @@ export default function Transactions( {onOpenNotification}: ModalProps) {
                 />
                 <div className="grid-accurate-18 main-container flex-column p-5">
                     <div className="header flex">
-                        <h4>All Transactions</h4>
+                      <div className="flex-column">
+                        <h5 className='text-midnight-navy !text-3xl !font-semibold'>All Transactions</h5>
+                        <p className='text-steel-blue font-medium'>View and manage all your transactions in one place</p>
+                      </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <Button icon={<UploadOutlined />} onClick={() => setImportOfxOpen(true)}>Import</Button>
                           <Button type="primary" onClick={() => {setOpenTransactionDrawer(!openTransactionDrawer); setTransactionToEdit(null)}}>Add Transaction</Button>

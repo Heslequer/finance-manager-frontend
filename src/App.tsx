@@ -43,13 +43,12 @@ const App:React.FC = () => {
     <ConfigProvider
       theme={{
         token: {
-          "colorPrimary": "#1677ff",
-          "colorInfo": "#1677ff"
+          "colorPrimary": "#2D53A1",
+          "colorInfo": "#2D53A1"
         },
       }}
     >
       {contextHolder}
-        {/* <button onClick={() => openNotificationWithIcon('success')}>Success</button> */}
         <BrowserRouter>
           <AppRoutes openNotification={ (type: string, message: string, description?: string) => openNotificationWithIcon(type, message, description)} />
         </BrowserRouter>

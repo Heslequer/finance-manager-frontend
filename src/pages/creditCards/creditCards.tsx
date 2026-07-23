@@ -3,15 +3,14 @@ import { Layout, ConfigProvider, Drawer, Button, Spin, Empty, Progress, Popconfi
 import { Content } from 'antd/es/layout/layout';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
-import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import NewCardDrawer from './newCreditCardDrawer/newCreditCard';
 import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
 import type { CreditCard } from '../../types/credit-card.interface';
-import type { ProgressProps } from 'antd';
+import type { ProgressProps, ConfigProviderProps  } from 'antd';
 import type { SearchProps } from 'antd/es/input';
 import NewTransactionModal from '../../components/newExpanseModal/newTransactionModal';
-
 import { transactionsApiService } from '../../services/api/transactions/transactions.api';
 import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { incomesApiService } from '../../services/api/incomes/incomes.api';
@@ -24,6 +23,9 @@ import { truncate } from '../../utils/truncate';
 type CreditCardsProps = {
   onOpenNotification: (type: string, message: string, description?: string) => any;
 };
+
+type SizeType = ConfigProviderProps['componentSize'];
+
 
 function formatDateOnlyForDisplay(isoDate: string | null | undefined): string {
   const part = String(isoDate ?? '').slice(0, 10);
@@ -63,6 +65,9 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [tempSelectedCategoryIds, setTempSelectedCategoryIds] = useState<string[]>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const [size, setSize] = useState<SizeType>('large'); // default is 'medium'
+
 
   const transactionItemToDataType = (item: TransactionItem): DataType => {
     const category = item.categories
@@ -435,59 +440,65 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
               )}
 
               <div className="flex p-5">
-                <div className="main-content flex-column gap-4" style={{ height: '100%' }}>
+                <div className="main-content flex-column gap-3" style={{ height: '100%' }}>
                   <div className='flex justify-between'>
-                    <div className='flex-column ml-2 mb-2'>
-                      <h4>Credit Cards</h4>
-                      <p>Manage your credit cards and track your spending.</p>
+                    <div className='flex-column mb-2'>
+                      <h5 className='text-midnight-navy !text-3xl !font-semibold'>Credit Cards</h5>
+                      <p className='text-steel-blue font-medium'>Manage your credit cards and track your spending.</p>
                     </div>
-                    <Button type='primary'>Import Transactions</Button>
+                    <Button className='!rounded-xl !py-5 !text-base'><UploadOutlined className='text-lg'/>Import Transactions</Button>
                   </div>
 
                   <div className='flex justify-between gap-3'>
                     {/* Total Limit */}
-                    <div className='py-4 px-4 flex-start gap-3 border-black/20 border-1 rounded-3xl flex-1 bg-white'>
-                      <div className='p-2 bg-blue-100 rounded-2xl'>
-                        <CreditCardOutlined style={{ color: '#155DFC', fontSize: '45px' }} />
-                      </div>
-                      <div className='flex-column gap-0.5'>
-                        <p className='text-lg font-semibold'>Total Limit</p>
-                        <p className='text-3xl font-bold text-blue-500'>{formatCurrency(totalLimit)}</p>
-                        <p className='text-lg'>Active Cards: {activeCards.length}</p>
+                    <div className='py-3 px-4 flex-start border-silver-mist/60 border-1 rounded-3xl flex-1 bg-white'>
+                      <div className='flex-column gap-2 w-full'>
+                        <div className='flex justify-between items-center w-full'>
+                          <p className='text-lg font-medium text-steel-blue'>Total Limit</p>
+                          <div className='p-1 bg-blue-800/7 rounded-xl'>
+                            <CreditCardOutlined className='text-[20px] !text-blue-800' />
+                          </div>
+                        </div>
+                        <p className='text-3xl font-semibold text-midnight-navy'>{formatCurrency(totalLimit)}</p>
+                        <p className='text-lg text-steel-blue'>Active Cards: {activeCards.length}</p>
                       </div>
                     </div>
                     {/* Available Limit */}
-                    <div className='py-4 px-4 flex-start gap-3 border-black/20 border-1 rounded-3xl flex-1 bg-white'>
-                      <div className='p-2 bg-green-100 rounded-2xl'>
-                        <RiseOutlined style={{ color: '#00A63E', fontSize: '45px' }} />
-                      </div>
-                      <div className='flex-column gap-0.5'>
-                        <p className='text-lg font-semibold'>Available Limit</p>
-                        <p className='text-3xl font-bold text-green-500'>{formatCurrency(availableLimit)}</p>
-                        <p className='text-lg'>{percentAvailable}% of the total limit</p>
+                    <div className='py-3 px-4 flex-start border-silver-mist/60 border-1 rounded-3xl flex-1 bg-white'>
+                      <div className='flex-column gap-2 w-full'>
+                        <div className='flex justify-between items-center w-full'>
+                          <p className='text-lg font-medium text-steel-blue'>Available Limit</p>
+                          <div className='p-1 bg-green-500/10 rounded-xl'>
+                            <RiseOutlined className='text-[20px] !text-green-600'/>
+                          </div>
+                        </div>
+                        <p className='text-3xl font-semibold text-midnight-navy'>{formatCurrency(availableLimit)}</p>
+                        <p className='text-lg text-steel-blue'>{percentAvailable}% of the total limit</p>
                       </div>
                     </div>
 
                     {/* Total Spent */}
-                    <div className='py-4 px-4 flex-start gap-3 border-black/20 border-1 rounded-3xl flex-1 bg-white'>
-                      <div className='p-2 bg-red-100 rounded-2xl'>
-                        <DollarOutlined style={{ color: '#E7000B', fontSize: '45px' }} />
-                      </div>
-                      <div className='flex-column gap-0.5'>
-                        <p className='text-lg font-semibold'>Total Spent</p>
-                        <p className='text-3xl font-bold text-red-500'>{formatCurrency(totalSpent)}</p>
-                        <p className='text-lg'>Cards used: {cardsUsedCount}</p>
+                    <div className='py-3 px-4 flex-start border-silver-mist/60 border-1 rounded-3xl flex-1 bg-white'>
+                      <div className='flex-column gap-2 w-full'>
+                        <div className='flex justify-between items-center w-full'>
+                          <p className='text-lg font-medium text-steel-blue'>Total Spent</p>
+                          <div className='p-1 bg-crimson/8 rounded-xl'>
+                            <DollarOutlined className='text-[20px] !text-crimson'/>
+                          </div>
+                        </div>
+                        <p className='text-3xl font-semibold text-midnight-navy'>{formatCurrency(totalSpent)}</p>
+                        <p className='text-lg text-steel-blue'>Cards used: {cardsUsedCount}</p>
                       </div>
                     </div>
                   </div>
                   {/* Active Cards */}
-                  <div className='border-1 border-black/20 rounded-3xl bg-white p-4'>
+                  <div className='border-1 border-black/20 rounded-3xl bg-white px-4 py-3'>
                     <div className='flex justify-between items-center'>
-                      <h5 className='my-1'>Active Cards</h5>
+                      <h5 className='text-midnight-navy !text-3xl !font-semibold'>Active Cards</h5>
                       <Button type='default' onClick={showDrawer} icon={<PlusOutlined />}></Button>
                     </div>
-                    <Divider/>
-                    <div className='relative flex-column justify-between h-100 gap-2'>
+                    <Divider className='my-2'/>
+                    <div className='relative flex-column justify-between h-95'>
                       {isLoading ? (
                         <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'>
                           <Spin indicator={<LoadingOutlined spin />} size="large" />
@@ -498,7 +509,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                         </div>
                       ) : (
                         <>
-                          <div className='grid grid-cols-3 gap-3'>
+                          <div className='grid grid-cols-3'>
                             {cards.map((card) => {
                               const cardTx = allCardTransactions.filter(t => t.credit_card_id === card.id);
                               const cardSpent = cardTx.reduce((sum, tx) => {
@@ -509,51 +520,50 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                               const percentUsed = card.credit_limit ? Math.round((cardSpent / card.credit_limit) * 100) : 0;
 
                               return (
-                                <div key={card.id} className='flex-column p-2 gap-2 bg-white'>
+                                <div key={card.id} className='flex-column items-center p-2 gap-4 bg-white'>
                                   <div
-                                    className='relative h-60 py-4 px-5 flex-column justify-between gap-2 rounded-3xl text-white shadow-md'
+                                    className='h-51 w-80 py-3 px-4 flex-column justify-between gap-2 rounded-3xl text-white shadow-md'
                                     style={{
                                       background: card.card_gradient || 'linear-gradient(90deg, rgb(16, 142, 233) 0%, rgb(135, 208, 104) 100%)',
-
                                     }}
                                   >
-                                    <div className='flex absolute top-3 right-3 gap-1 '>
-                                      <EditOutlined className='hover:scale-110 duration-300 ease-in-out' style={{ cursor: 'pointer', fontSize: '20px' }} onClick={() => handleEditCard(card)} />
-                                      <Popconfirm
-                                        title="Are you sure?"
-                                        onConfirm={() => handleDeleteCard(card.id)}
-                                        cancelText="No"
-                                        okText="Yes"
-                                        icon={null}
-                                        placement="right"
-                                      >
-                                        <DeleteOutlined className='hover:scale-110 duration-300 ease-in-out' style={{ cursor: 'pointer', fontSize: '20px' }} />
-                                      </Popconfirm>
+                                    <div className='flex flex-column justify-between'>
+                                      <p className="text-xl font-medium">{truncate(card.card_name, 15)}</p>
+                                      <p className="text-base opacity-80">{truncate(card.bank_name, 15)}</p>
                                     </div>
-                                    <div className='flex justify-between'>
-                                      <p className="text-3xl font-bold">{truncate(card.card_name, 15)}</p>
-                                    </div>
-                                    <div className='flex-center gap-2 my-2'>
+                                    <div className='flex-center gap-2'>
                                       <p className='text-2xl m-0 tracking-wider'>**** **** **** </p>
                                       <p className='text-2xl m-0 font-mono'>{card.card_digits}</p>
                                     </div>
-                                    <div className='flex justify-between items-end'>
-                                      <div className='flex-column gap-0.5'>
-                                        <p className="text-1xl text-sm">{truncate(card.bank_name, 15)}</p>
-                                      </div>
+                                    <div className='flex justify-end items-end'>
                                       <div className='flex-column gap-0.5 text-right'>
-                                        <p className='text-xs m-0 opacity-80'>Valid Thru</p>
-                                        <p className='text-sm font-semibold m-0'>{card.valid_thru}</p>
+                                        <p className='text-sm m-0 opacity-80'>Valid Thru</p>
+                                        <p className='text-base font-semibold m-0'>{card.valid_thru}</p>
                                       </div>
                                     </div>
                                   </div>
-                                  <div className='flex-column gap-0.5'>
-                                    <p>Used Limit:</p>
-                                    <Progress size={{height:15}} strokeColor={progressbarColors(card.card_gradient)} percent={percentUsed} showInfo={false} />
+                                  <div className='flex-column gap-0.5 w-80'>
                                     <div className='flex justify-between'>
-                                      <p>Used: {formatCurrency(cardSpent)}</p>
-                                      <p>Limit: {formatCurrency(card.credit_limit || 0)}</p>
+                                      <p className='text-steel-blue font-medium'>Used: <span className='text-midnight-navy font-semibold'>{formatCurrency(cardSpent)}</span></p>
+                                      <p className='text-steel-blue font-medium'>Limit: <span className='text-midnight-navy font-semibold'>{formatCurrency(card.credit_limit || 0)}</span></p>
                                     </div>
+                                      <Progress size={{height:10}} strokeColor={progressbarColors(card.card_gradient)} percent={percentUsed} showInfo={false} />
+                                      <div className='flex justify-between'>
+                                        <p className='text-steel-blue font-medium'>Used Limit: <span className='text-midnight-navy font-semibold'>{percentUsed}%</span></p>
+                                        <div className='flex gap-1'>
+                                          <Button size={'small'} icon={<EditOutlined />} onClick={() => handleEditCard(card)}></Button>
+                                          <Popconfirm
+                                            title="Are you sure?"
+                                            onConfirm={() => handleDeleteCard(card.id)}
+                                            cancelText="No"
+                                            okText="Yes"
+                                            icon={null}
+                                            placement="right"
+                                          >
+                                            <Button size={'small'} icon={<DeleteOutlined />}></Button>
+                                          </Popconfirm>
+                                        </div>
+                                      </div>
                                   </div>
                                 </div>
                               );
@@ -578,9 +588,9 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                   <div className='grid grid-cols-3 gap-3'>
                     {/* Card Transations */}
                     <div className='flex-column border-1 border-black/20 rounded-3xl p-4 col-span-2 bg-white'>
-                      <div className='flex-column gap-4'>
+                      <div className='flex-column gap-3'>
                         <div className='flex justify-between'>
-                          <h5>Card Transactions</h5>
+                        <h4 className='text-midnight-navy font-semibold'>Card Transactions</h4>
                           <Button type='default' onClick={showTransactionDrawer} icon={<PlusOutlined />}></Button>
                         </div>
                         <div className='flex justify-between gap-2'>
@@ -674,9 +684,9 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                       )}
                     </div>
                     {/* Trasactions per Category */}
-                    <div className='flex-column gap-2 border-1 border-black/20 rounded-3xl p-3 col-span-1 bg-white relative'>
-                      <div>
-                        <h5 className='text-2xl font-bold mb-2'>Transactions per Category</h5>
+                    <div className='flex-column gap-2 border-1 border-black/20 rounded-3xl p-4 col-span-1 bg-white relative'>
+                      <div className='flex-column gap-1'>
+                        <h5 className='text-midnight-navy !text-3xl !font-semibold'>Categories Breakdown</h5>
                         <Divider/>
                       </div>
                       <div className='flex-column gap-3' style={{ maxHeight: '350px', overflowY: 'auto' }}>

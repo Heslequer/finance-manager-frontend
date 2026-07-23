@@ -8,7 +8,7 @@ import type { Category } from '../../types/category.interface';
 import { categoriesApiService } from '../../services/api/categories/categories.api';
 import CategoryCard from '../categories/categoryCard/categoryCard';
 import { Content } from 'antd/es/layout/layout';
-import { LoadingOutlined } from '@ant-design/icons';
+import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 
 export default function CategoriesPage() {
     const navigate = useNavigate();
@@ -60,11 +60,14 @@ export default function CategoriesPage() {
                         )}
                         <div className='main-content p-5' style={{ height: '100%', minHeight: '100vh' }}>
                             <div className="flex page-header mb-3">
-                                <h4>Manage Categories</h4>
-                                <Button type="primary" onClick={() => handleCreateCategory()}>New Category</Button>
+                              <div className="flex-column">
+                                <h5 className='text-midnight-navy !text-3xl !font-semibold'>Categories</h5>
+                                <p className='text-steel-blue font-medium'>Organize and edit your expense and income categories</p>
+                              </div>
+                              <Button className='!rounded-xl !py-5 !text-base' icon={<PlusOutlined />} onClick={() => handleCreateCategory()}>New Category</Button>
                             </div>
-                            <div className="categories-container flex">
-                                <div className="expense-categories bd flex-column p-2">
+                            <div className="flex">
+                                <div className="expense-categories flex-column p-1">
                                     <h5 className='mb-2 red'>Expense</h5>
                                     <Spin className="mt-5" spinning={isLoading} indicator={<LoadingOutlined spin />} size="large">
                                         {!isLoading && categories.filter((category) => category.type === "expense").length === 0 ?(
@@ -77,9 +80,11 @@ export default function CategoriesPage() {
                                                 
                                                 return (
                                                     <>
+                                                    <div className='flex-column gap-3'>
                                                         {paginatedCategories.map((category) => (
                                                             <CategoryCard key={`${category.id}-${category.updated_at}`} currentCategory={category} updateCategories={() => updateCategories()}></CategoryCard>
                                                         ))}
+                                                    </div>
                                                     </>
                                                 );
                                             })()}
@@ -94,7 +99,7 @@ export default function CategoriesPage() {
                                         />
                                     )}
                                 </div>
-                                <div className="income-categories bd flex-column p-2">
+                                <div className="income-categories flex-column p-1">
                                     <h5 className='mb-2 green'>Income</h5>
                                     <Spin className="mt-5" spinning={isLoading} indicator={<LoadingOutlined spin />} size="large">
                                         {!isLoading && categories.filter((category) => category.type === "income").length === 0 ?(
@@ -107,9 +112,11 @@ export default function CategoriesPage() {
                                                 
                                                 return (
                                                     <>
+                                                    <div className='flex-column gap-3'>
                                                         {paginatedCategories.map((category) => (
                                                             <CategoryCard key={`${category.id}-${category.updated_at}`} currentCategory={category} updateCategories={() => updateCategories()}></CategoryCard>
                                                         ))}
+                                                    </div>
                                                     </>
                                                 );
                                             })()}

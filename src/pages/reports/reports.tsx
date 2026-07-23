@@ -607,15 +607,17 @@ export default function Reports() {
               <div className="flex p-5">
                 <div className="main-content flex-column" style={{ height: '100%'}}>
                   <div className='ml-2 mb-2'>
-                    <h4>Financial Reports</h4>
-                    <p>Detailed analysis and insights for financial decision-making.</p>
+                    <h5 className='text-midnight-navy !text-3xl !font-semibold'>Financial Reports</h5>                                
+                    <p className='text-steel-blue font-medium'>Detailed analysis and insights for financial decision-making.</p>
                   </div>
-                  <div className='cards-container flex-column'>
-                    <div className='first-line mx-2 select-date-container card border'>
-                        <div className='flex-space-between my-2'>
-                          <div className='flex-center'>
-                            <FilterOutlined style={{ fontSize: '21px' }}/>
-                            <h5 className='font-weight-500 ml-1'>Filter by Date</h5>  
+                  <div className='flex-column'>
+                    <div className='flex flex-column gap-3 border-silver-mist/60 border-1 rounded-3xl px-4 py-3 bg-white'>
+                        <div className='flex-space-between'>
+                          <div className='flex-center gap-2'>
+                            <div className='p-1 bg-[#1a365d]/8 rounded-xl'>
+                              <FilterOutlined style={{ fontSize: '21px', color: "#1a365d" }}/>
+                            </div>
+                            <h5 className='text-midnight-navy !text-2xl !font-semibold'>Filters</h5>  
                           </div>
                           <Button
                             onClick={clearFilters}
@@ -626,11 +628,12 @@ export default function Reports() {
                         </div>
                         <div className='flex-space-between'>
                           <div className='flex-column gap-1'>
-                            <p>Quick Filter Period</p>
+                            <p className='text-md font-medium text-steel-blue'>Quick Filter Period</p>
                             <Select
-                              style={{ width: 190 }}
+                              style={{ minWidth: 190 }}
                               placeholder="Select a Period"
                               value={selectedPeriod}
+                              size={'large'}
                               onChange={(value) => {
                                 setSelectedPeriod(value);
                                 if (value !== 'custom') {
@@ -647,22 +650,24 @@ export default function Reports() {
                             />
                           </div>
                           <div className='flex-column gap-1'>
-                            <p>Date Range</p>
+                            <p className='text-md font-medium text-steel-blue'>Date Range</p>
                             <RangePicker 
                               value={selectedPeriod === 'custom' ? selectedDateRange : undefined}
+                              size={'large'}
                               onChange={(dates) => setSelectedDateRange(dates)}
                               disabled={selectedPeriod !== 'custom'}
                               disabledDate={disabledDate}
                               allowClear
                               allowEmpty
-                              style={{ width: 350 }} 
+                              style={{ minWidth: 350 }} 
                             />
                           </div>
                           <div className='flex-column gap-1'>
-                            <p>Transaction Type</p>
+                            <p className='text-md font-medium text-steel-blue'>Transaction Type</p>
                             <Select
                               placeholder="Select a Type"
                               value={selectedTransactionType || undefined}
+                              size={'large'}
                               onChange={(value) => {
                                 setSelectedTransactionType(value);
                                 setSelectedCategories([]); //clear selected categories when transaction type is changed
@@ -676,10 +681,11 @@ export default function Reports() {
                             />
                           </div>
                           <div className='flex-column gap-1'>
-                            <p>Select a Category or Subcategory</p>
+                            <p className='text-md font-medium text-steel-blue'>Select a Category or Subcategory</p>
                             <TreeSelect
                               multiple
-                              style={{ width: 300 }}
+                              style={{ minWidth: 350 }}
+                              size={'large'}
                               placeholder="Select categories"
                               defaultValue={['expenses-group', 'incomes-group']}
                               value={selectedCategories}
@@ -690,7 +696,7 @@ export default function Reports() {
                             />
                           </div>
                         </div>
-                        <div className='flex-end mt-3'>
+                        <div className='flex-end'>
                           <Button type="primary" onClick={applyFilters}>
                             <FilterOutlined />
                             Apply Filters
