@@ -4,15 +4,49 @@
 @use './colors';
 @use './icons';
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .no-style{
   background-color: transparent;
   border: none;
   outline: none;
   cursor: pointer;
 }
+
+/* Ant Design Pagination Alignment & Spacing Normalization */
+.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+
+  .ant-pagination-item,
+  .ant-pagination-prev,
+  .ant-pagination-next,
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next,
+  .ant-pagination-total-text,
+  .ant-pagination-options {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle !important;
+    margin-inline-end: 8px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .ant-pagination-item-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    svg {
+      display: inline-block !important;
+    }
+  }
+
+  .ant-pagination-item-ellipsis {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+  }
+}   

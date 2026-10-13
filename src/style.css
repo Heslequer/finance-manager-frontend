@@ -1,3 +1,4 @@
+@layer theme, base, antd, components, utilities;
 @import 'tailwindcss';
 
 @theme {
@@ -14,6 +15,40 @@
     --color-ochre: #C07A2B;
     --color-cobalt: #2860A8;
     --color-grape : #7B3FA8;
+    --color-red : #ff4d4f;
 
+    /* Figma Design Tokens */
+    --color-blue-200: #A6B7DB;
+    --color-blue-300: #7B94C6;
+    --color-blue-400: #5371B0;
+    --color-blue-500: #2B4F99;
+    --color-blue-600: #234487;
+    --color-blue-700: #1C3974;
+    --color-blue-800: #152E60;
+
+    --color-black-200: #A4A5A6;
+    --color-black-300: #77787A;
+    --color-black-400: #494B4E;
+    --color-black-500: #1C1E21;
+    --color-black-600: #181A1D;
+    --color-black-700: #141618;
+    --color-black-800: #111214;
+
+    --color-white-200: #FCFDFF;
+    --color-white-300: #F3F7FD;
+    --color-white-400: #EBF2FB; 
+    --color-white-500: #E3ECF9;
+    --color-white-600: #C4CDD8;
+    --color-white-700: #A6ADB7;
+    --color-white-800: #9FACC1;
+
+    --color-green-200: #73E781;
+    --color-green-500: #26C739;
+
+    --color-red-200: #E77375;
+    --color-red-500: #C72629;
 }
+
+
+
 

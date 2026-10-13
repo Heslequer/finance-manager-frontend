@@ -346,8 +346,12 @@ $total-columns: 18;
     width: 25%;
 }
 
-.border{
-    border: 1px solid red;
+// .border{
+//     border: 1px solid red;
+// }
+
+.test{
+    border: 2px solid red !important;
 }
 .box-border{
     border-radius: 10px;
