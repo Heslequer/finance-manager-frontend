@@ -588,20 +588,43 @@ export default function ChartsSection({
                   xAxis={[{ data: lineChartLabels, scaleType: 'point' }]}
                   series={[
                     { 
+                      id: 'incomes',
                       curve: "natural", 
                       data: incomesLineData,
                       label: 'Incomes',
-                      color: '#4caf50'
+                      color: '#4caf50',
+                      area: true,
                     },
                     { 
+                      id: 'expenses',
                       curve: "natural", 
                       data: expensesLineData,
                       label: 'Expenses',
-                      color: '#f44336'
+                      color: '#f44336',
+                      area: true
                     },
                   ]}
                   height={300}
-                />
+                  sx={{
+                    '& .MuiAreaElement-series-incomes': {
+                      fill: 'url(#incomesGradient)',
+                    },
+                    '& .MuiAreaElement-series-expenses': {
+                      fill: 'url(#expensesGradient)',
+                    },
+                  }}
+                >
+                  <defs>
+                    <linearGradient id="incomesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4caf50" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="#4caf50" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="expensesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f44336" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="#f44336" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                </LineChart>
               )}
             </Spin>
           </div>
@@ -612,7 +635,7 @@ export default function ChartsSection({
             <h5 className='text-midnight-navy !text-2xl !font-semibold'>Ranking</h5>
             <Divider />
           </div>
-          <div className="flex-column gap-3 relative" style={{ minHeight: '320px', maxHeight: '420px', overflowY: 'auto' }}>
+        <div className="flex-column gap-3" style={{ minHeight: '320px', maxHeight: '420px', overflowY: 'auto' }}>
             <Spin spinning={isLoadingRanking} indicator={<LoadingOutlined spin />} size="large">
               {!isLoadingRanking && (
                 <>
