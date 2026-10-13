@@ -7,6 +7,7 @@ export type OfxImportOptions = {
   expenseSubcategoryId?: string | null;
   incomeCategoryId?: string | null;
   incomeSubcategoryId?: string | null;
+  creditCardId?: string | null;
 };
 
 export type OfxImportResult = {
@@ -33,6 +34,7 @@ export async function importOfxTransactions(
           description: t.description,
           category_id: options.incomeCategoryId ?? undefined,
           subcategory_id: options.incomeSubcategoryId ?? undefined,
+          credit_card_id: options.creditCardId ?? undefined,
         });
       } else {
         await expensesApiService.createExpense({
@@ -41,6 +43,7 @@ export async function importOfxTransactions(
           description: t.description,
           category_id: options.expenseCategoryId ?? undefined,
           subcategory_id: options.expenseSubcategoryId ?? undefined,
+          credit_card_id: options.creditCardId ?? undefined,
         });
       }
       imported++;

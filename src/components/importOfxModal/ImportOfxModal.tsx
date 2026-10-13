@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, Upload, Button, Table, message, Select } from 'antd';
+import { Modal, Upload, Button, Table, message, Select, Form } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { parseOfx, type ParsedOfxTransaction } from '../../services/ofx/ofxParser.service';
 import { importOfxTransactions, type OfxImportOptions } from '../../services/ofx/ofxImport.service';
@@ -7,14 +7,18 @@ import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { incomesApiService } from '../../services/api/incomes/incomes.api';
 import { categoriesApiService } from '../../services/api/categories/categories.api';
 import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
+import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
 import type { Category } from '../../types/category.interface';
 import type { Subcategory } from '../../types/subcategory.interface';
+import type { CreditCard } from '../../types/credit-card.interface';
 
 type ImportOfxModalProps = {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
   onOpenNotification: (type: string, message: string, description?: string) => void;
+  initialCreditCardId?: string;
+  showCreditCardSelect?: boolean;
 };
 
 
@@ -32,62 +36,134 @@ function buildSignature(
   return `${type}|${desc}|${amt}|${dt}`;
 }
 
-export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotification }: ImportOfxModalProps) {
+export default function ImportOfxModal({
+  open,
+  onClose,
+  onSuccess,
+  onOpenNotification,
+  initialCreditCardId,
+  showCreditCardSelect = false,
+}: ImportOfxModalProps) {
+  const [form] = Form.useForm();
   const [parsed, setParsed] = useState<ParsedOfxTransaction[]>([]);
+  const [allFileTransactions, setAllFileTransactions] = useState<ParsedOfxTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [incomeCategories, setIncomeCategories] = useState<Category[]>([]);
   const [expenseSubcategories, setExpenseSubcategories] = useState<Subcategory[]>([]);
   const [incomeSubcategories, setIncomeSubcategories] = useState<Subcategory[]>([]);
-  const [expenseCategoryId, setExpenseCategoryId] = useState<string | undefined>(undefined);
-  const [expenseSubcategoryId, setExpenseSubcategoryId] = useState<string | undefined>(undefined);
-  const [incomeCategoryId, setIncomeCategoryId] = useState<string | undefined>(undefined);
-  const [incomeSubcategoryId, setIncomeSubcategoryId] = useState<string | undefined>(undefined);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+
+  const selectedCreditCardId = Form.useWatch('creditCard', form);
+  const expenseCategoryId = Form.useWatch('expenseCategoryId', form);
+  const incomeCategoryId = Form.useWatch('incomeCategoryId', form);
 
   useEffect(() => {
     if (!open) return;
     const load = async () => {
       setLoading(true);
       try {
-        const [exp, inc] = await Promise.all([
+        const [exp, inc, cards] = await Promise.all([
           categoriesApiService.getCategoriesByType('expense'),
           categoriesApiService.getCategoriesByType('income'),
+          creditCardsApiService.getAllCreditCards(),
         ]);
         setExpenseCategories(exp ?? []);
         setIncomeCategories(inc ?? []);
+        setCreditCards(cards ?? []);
+        if (initialCreditCardId) {
+          form.setFieldsValue({ creditCard: initialCreditCardId });
+        }
       } catch (e) {
-        message.error('Error loading categories.');
+        message.error('Error loading categories and credit cards.');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [open]);
+  }, [open, initialCreditCardId, form]);
 
   useEffect(() => {
     if (!expenseCategoryId) {
       setExpenseSubcategories([]);
-      setExpenseSubcategoryId(undefined);
+      form.setFieldsValue({ expenseSubcategoryId: undefined });
       return;
     }
     subcategoriesApiService.getSubcategoriesByCategoryId(expenseCategoryId).then((s) => {
       setExpenseSubcategories(s ?? []);
-      setExpenseSubcategoryId(undefined);
+      form.setFieldsValue({ expenseSubcategoryId: undefined });
     });
-  }, [expenseCategoryId]);
+  }, [expenseCategoryId, form]);
 
   useEffect(() => {
     if (!incomeCategoryId) {
       setIncomeSubcategories([]);
-      setIncomeSubcategoryId(undefined);
+      form.setFieldsValue({ incomeSubcategoryId: undefined });
       return;
     }
     subcategoriesApiService.getSubcategoriesByCategoryId(incomeCategoryId).then((s) => {
       setIncomeSubcategories(s ?? []);
-      setIncomeSubcategoryId(undefined);
+      form.setFieldsValue({ incomeSubcategoryId: undefined });
     });
-  }, [incomeCategoryId]);
+  }, [incomeCategoryId, form]);
+
+  useEffect(() => {
+    if (allFileTransactions.length === 0) {
+      setParsed([]);
+      return;
+    }
+
+    let active = true;
+
+    const filterDuplicates = async () => {
+      try {
+        const [existingExpenses, existingIncomes] = await Promise.all([
+          expensesApiService.getAllExpensesByUserId(''),
+          incomesApiService.getAllIncomesByUserId(''),
+        ]);
+
+        if (!active) return;
+
+        const existingSignatures = new Set<string>();
+        for (const e of existingExpenses) {
+          existingSignatures.add(
+            buildSignature('expense', e.description ?? '', e.amount, e.date ?? ''),
+          );
+        }
+        for (const i of existingIncomes) {
+          existingSignatures.add(
+            buildSignature('income', i.description ?? '', i.amount, i.date ?? ''),
+          );
+        }
+
+        const filtered = allFileTransactions.filter((t) => {
+          const type = t.isCredit ? 'income' : 'expense';
+          const sig = buildSignature(type, t.description, t.amount, t.date);
+          return !existingSignatures.has(sig);
+        });
+
+        const ignored = allFileTransactions.length - filtered.length;
+        if (ignored > 0) {
+          message.info(`${ignored} duplicate transaction(s) ignored (already in system).`);
+        }
+        setParsed(filtered);
+        if (filtered.length === 0) {
+          message.info('All transactions from this file already exist.');
+        }
+      } catch (e) {
+        if (!active) return;
+        const msg = e instanceof Error ? e.message : 'Error filtering duplicates.';
+        message.error(msg);
+      }
+    };
+
+    filterDuplicates();
+
+    return () => {
+      active = false;
+    };
+  }, [allFileTransactions]);
 
   const handleFile = async (file: File) => {
     setParsed([]);
@@ -98,38 +174,7 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
         message.info('No transactions found in file.');
         return false;
       }
-
-      const [existingExpenses, existingIncomes] = await Promise.all([
-        expensesApiService.getAllExpensesByUserId(''),
-        incomesApiService.getAllIncomesByUserId(''),
-      ]);
-
-      const existingSignatures = new Set<string>();
-      for (const e of existingExpenses) {
-        existingSignatures.add(
-          buildSignature('expense', e.description ?? '', e.amount, e.date ?? ''),
-        );
-      }
-      for (const i of existingIncomes) {
-        existingSignatures.add(
-          buildSignature('income', i.description ?? '', i.amount, i.date ?? ''),
-        );
-      }
-
-      const filtered = list.filter((t) => {
-        const type = t.isCredit ? 'income' : 'expense';
-        const sig = buildSignature(type, t.description, t.amount, t.date);
-        return !existingSignatures.has(sig);
-      });
-
-      const ignored = list.length - filtered.length;
-      if (ignored > 0) {
-        message.info(`${ignored} duplicate transaction(s) ignored (already in system).`);
-      }
-      setParsed(filtered);
-      if (filtered.length === 0) {
-        message.info('All transactions from this file already exist.');
-      }
+      setAllFileTransactions(list);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Error reading OFX file.';
       message.error(msg);
@@ -139,22 +184,24 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
   };
 
   const resetModalState = () => {
+    setAllFileTransactions([]);
     setParsed([]);
-    setExpenseCategoryId(undefined);
-    setExpenseSubcategoryId(undefined);
-    setIncomeCategoryId(undefined);
-    setIncomeSubcategoryId(undefined);
+    form.resetFields();
+    if (initialCreditCardId) {
+      form.setFieldsValue({ creditCard: initialCreditCardId });
+    }
   };
 
-  const handleImport = async () => {
+  const onFinish = async (values: any) => {
     if (parsed.length === 0) return;
     setImporting(true);
     try {
       const options: OfxImportOptions = {
-        expenseCategoryId: expenseCategoryId ?? null,
-        expenseSubcategoryId: expenseSubcategoryId ?? null,
-        incomeCategoryId: incomeCategoryId ?? null,
-        incomeSubcategoryId: incomeSubcategoryId ?? null,
+        expenseCategoryId: values.expenseCategoryId ?? null,
+        expenseSubcategoryId: values.expenseSubcategoryId ?? null,
+        incomeCategoryId: values.incomeCategoryId ?? null,
+        incomeSubcategoryId: values.incomeSubcategoryId ?? null,
+        creditCardId: values.creditCard ?? null,
       };
       const { imported, failed, errors } = await importOfxTransactions(parsed, options);
       if (failed > 0 && errors.length > 0) {
@@ -197,88 +244,125 @@ export default function ImportOfxModal({ open, onClose, onSuccess, onOpenNotific
       onCancel={handleClose}
       footer={[
         <Button key="cancel" onClick={handleClose}>Cancel</Button>,
-        <Button key="import" type="primary" loading={importing} disabled={parsed.length === 0} onClick={handleImport}>
+        <Button
+          key="import"
+          type="primary"
+          loading={importing}
+          disabled={parsed.length === 0}
+          htmlType="submit"
+          form="import-ofx-form"
+        >
           Import
         </Button>,
       ]}
       width={640}
       destroyOnHidden
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <div style={{ marginBottom: 8 }}>File</div>
-          <Upload accept=".ofx,.qfx" beforeUpload={handleFile} showUploadList={false} maxCount={1}>
-            <Button icon={<UploadOutlined />}>Select .OFX or .QFX file</Button>
-          </Upload>
-        </div>
+      <Form
+        form={form}
+        onFinish={onFinish}
+        layout="vertical"
+        id="import-ofx-form"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <div style={{ marginBottom: 8 }}>File</div>
+            <Upload accept=".ofx,.qfx" beforeUpload={handleFile} showUploadList={false} maxCount={1}>
+              <Button icon={<UploadOutlined />}>Select .OFX or .QFX file</Button>
+            </Upload>
+          </div>
 
-        {parsed.length > 0 && (
-          <>
+          {showCreditCardSelect && (
+            <div className="w-50">
+              <Form.Item
+                name="creditCard"
+                label="Credit Card"
+                rules={[{ required: true, message: 'Please select a credit card.' }]}
+              >
+                <Select
+                  placeholder="Select Credit Card"
+                  allowClear
+                  style={{ width: '100%' }}
+                  loading={loading}
+                  options={creditCards.map((c) => ({
+                    value: c.id,
+                    label: `${c.card_name} (${c.bank_name})`,
+                  }))}
+                />
+              </Form.Item>
+            </div>
+          )}
+
+          {parsed.length > 0 && (
+            <>
+              <div>
+                <strong>{parsed.length} transactions</strong> ({expenses} expenses, {incomes} incomes)
+              </div>
+              <Table
+                columns={cols}
+                dataSource={dataSource}
+                pagination={false}
+                size="small"
+                scroll={{ y: 200 }}
+              />
+              {parsed.length > PREVIEW_MAX && (
+                <div style={{ color: '#666', fontSize: 12 }}>and {parsed.length - PREVIEW_MAX} more transactions</div>
+              )}
+            </>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <strong>{parsed.length} transactions</strong> ({expenses} expenses, {incomes} incomes)
+              <div style={{ marginBottom: 4, fontWeight: 500 }}>Expenses (negative amount) — optional</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Form.Item name="expenseCategoryId" style={{ marginBottom: 0 }}>
+                  <Select
+                    placeholder="Category"
+                    allowClear
+                    style={{ minWidth: 160 }}
+                    loading={loading}
+                    options={expenseCategories.map((c) => ({ value: c.id, label: c.name }))}
+                  />
+                </Form.Item>
+                <Form.Item name="expenseSubcategoryId" style={{ marginBottom: 0 }}>
+                  <Select
+                    placeholder="Subcategory"
+                    allowClear
+                    style={{ minWidth: 160 }}
+                    options={expenseSubcategories.map((s) => ({ value: s.id, label: s.name }))}
+                    disabled={!expenseCategoryId}
+                  />
+                </Form.Item>
+              </div>
             </div>
-            <Table
-              columns={cols}
-              dataSource={dataSource}
-              pagination={false}
-              size="small"
-              scroll={{ y: 200 }}
-            />
-            {parsed.length > PREVIEW_MAX && (
-              <div style={{ color: '#666', fontSize: 12 }}>and {parsed.length - PREVIEW_MAX} more transactions</div>
+            {!showCreditCardSelect && (
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Incomes (positive amount) — optional</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Form.Item name="incomeCategoryId" style={{ marginBottom: 0 }}>
+                    <Select
+                      placeholder="Category"
+                      allowClear
+                      style={{ minWidth: 160 }}
+                      loading={loading}
+                      options={incomeCategories.map((c) => ({ value: c.id, label: c.name }))}
+                    />
+                  </Form.Item>
+                  <Form.Item name="incomeSubcategoryId" style={{ marginBottom: 0 }}>
+                    <Select
+                      placeholder="Subcategory"
+                      allowClear
+                      style={{ minWidth: 160 }}
+                      options={incomeSubcategories.map((s) => ({ value: s.id, label: s.name }))}
+                      disabled={!incomeCategoryId}
+                    />
+                  </Form.Item>
+                </div>
+              </div>
             )}
-          </>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <div style={{ marginBottom: 4, fontWeight: 500 }}>Expenses (negative amount) — optional</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Select
-                placeholder="Category"
-                allowClear
-                style={{ minWidth: 160 }}
-                loading={loading}
-                value={expenseCategoryId || undefined}
-                onChange={setExpenseCategoryId}
-                options={expenseCategories.map((c) => ({ value: c.id, label: c.name }))}
-              />
-              <Select
-                placeholder="Subcategory"
-                allowClear
-                style={{ minWidth: 160 }}
-                value={expenseSubcategoryId || undefined}
-                onChange={setExpenseSubcategoryId}
-                options={expenseSubcategories.map((s) => ({ value: s.id, label: s.name }))}
-                disabled={!expenseCategoryId}
-              />
-            </div>
-          </div>
-          <div>
-            <div style={{ marginBottom: 4, fontWeight: 500 }}>Incomes (positive amount) — optional</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Select
-                placeholder="Category"
-                allowClear
-                style={{ minWidth: 160 }}
-                loading={loading}
-                value={incomeCategoryId || undefined}
-                onChange={setIncomeCategoryId}
-                options={incomeCategories.map((c) => ({ value: c.id, label: c.name }))}
-              />
-              <Select
-                placeholder="Subcategory"
-                allowClear
-                style={{ minWidth: 160 }}
-                value={incomeSubcategoryId || undefined}
-                onChange={setIncomeSubcategoryId}
-                options={incomeSubcategories.map((s) => ({ value: s.id, label: s.name }))}
-                disabled={!incomeCategoryId}
-              />
-            </div>
           </div>
         </div>
-      </div>
+      </Form>
     </Modal>
   );
 }
