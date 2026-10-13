@@ -5,6 +5,8 @@ import Transactions from "../pages/reports/transactions/transactions";
 import LoginPage from "../pages/login/login";
 import SignUpPage from "../pages/signUp/signUp";
 import CreditCards from "../pages/creditCards/creditCards";
+import DashboardPage from "../pages/dashboard/dashboard";
+
 type ModalProps = {
     openNotification: (type: string, message: string, description?: string) => any;
 }
@@ -15,6 +17,7 @@ export default function AppRoutes( {openNotification}: ModalProps) {
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/dashboard" element={<DashboardPage onOpenNotification={(type: string, message: string, description?: string) => openNotification(type, message, description)} />} />
             <Route path="/categories" element={<CategoriesPage />}/>
             <Route path="/reports" element={<Reports />}/>
             <Route path="/transactions" element={<Transactions onOpenNotification={(type: string, message: string, description?: string) => openNotification(type, message, description)} />}/>

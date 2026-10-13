@@ -3,7 +3,7 @@ import React from 'react';
 import { ConfigProvider, Layout, Menu } from 'antd';
 import logo from '../../assets/logo-no-background.svg';
 import type { MenuProps } from 'antd';
-import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined, CreditCardOutlined } from '@ant-design/icons';
+import { UnorderedListOutlined, BarChartOutlined, TagOutlined, LogoutOutlined, CreditCardOutlined, DashboardOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 const { Sider } = Layout;
@@ -12,7 +12,7 @@ type SidebarProps = {
   onOpenCategoriesPage: () => void;
 };
 const items = [
-  // {key: "/" , label: "Home"},
+  { key: "/dashboard", label: "Dashboard" },
   { key: "/reports", label: "Reports" },
   { key: "/transactions", label: "Transactions" },
   { key: "/categories", label: "Categories" },
@@ -23,9 +23,7 @@ export default function Sidebar({ onOpenDashboardPage: _onOpenDashboardPage, onO
   const navigate = useNavigate();
   const location = useLocation();
 
-  const items2: MenuProps['items'] = [/*HomeOutlined,*/ BarChartOutlined, UnorderedListOutlined, TagOutlined,
-    CreditCardOutlined
-  ].map(
+  const items2: MenuProps['items'] = [DashboardOutlined, BarChartOutlined, UnorderedListOutlined, TagOutlined, CreditCardOutlined].map(
     (icon, index) => {
       return {
         key: items[index].key,
@@ -67,7 +65,7 @@ export default function Sidebar({ onOpenDashboardPage: _onOpenDashboardPage, onO
 
         <Sider
           width={250}
-          className="sidebar-fixed !bg-midnight-navy rounded-l-3xl"
+          className="sidebar-fixed !bg-blue-500 rounded-l-3xl"
           collapsed={true}
         >
           <div className='flex flex-col h-full px-2 py-3 gap-5'>

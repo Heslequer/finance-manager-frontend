@@ -1,8 +1,8 @@
 import { BrowserRouter } from 'react-router-dom'
 import './styles/main.scss'
 import AppRoutes from './routes/appRoutes'
-import { notification } from 'antd'
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, notification } from 'antd'
+import { StyleProvider } from '@ant-design/cssinjs'
 import React, { useEffect } from 'react'
 import { authService } from './services/auth/auth.service'
 import { supabase } from './lib/supabase'
@@ -11,7 +11,7 @@ type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
 const App:React.FC = () => {
   useEffect(() => {
-    const syncUserOnSession = async () => {
+    const syncUserOnSession = async () => { 
       try {
         await authService.ensureUserInPublicTable();
       } catch {
@@ -40,19 +40,21 @@ const App:React.FC = () => {
   };
   const [api, contextHolder] = notification.useNotification();
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          "colorPrimary": "#2D53A1",
-          "colorInfo": "#2D53A1"
-        },
-      }}
-    >
-      {contextHolder}
-        <BrowserRouter>
-          <AppRoutes openNotification={ (type: string, message: string, description?: string) => openNotificationWithIcon(type, message, description)} />
-        </BrowserRouter>
-    </ConfigProvider>
+    <StyleProvider layer hashPriority="high">
+      <ConfigProvider
+        theme={{
+          token: {
+            "colorPrimary": "#2D53A1",
+            "colorInfo": "#2D53A1"
+          },
+        }}
+      >
+        {contextHolder}
+          <BrowserRouter>
+            <AppRoutes openNotification={ (type: string, message: string, description?: string) => openNotificationWithIcon(type, message, description)} />
+          </BrowserRouter>
+      </ConfigProvider>
+    </StyleProvider>
   )
 }
 
