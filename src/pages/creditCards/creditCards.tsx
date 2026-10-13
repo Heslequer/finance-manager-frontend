@@ -3,14 +3,15 @@ import { Layout, ConfigProvider, Drawer, Button, Spin, Empty, Progress, Popconfi
 import { Content } from 'antd/es/layout/layout';
 import Sidebar from '../../components/sidebar/sidebar';
 import { useNavigate } from 'react-router-dom';
-import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { useState, useEffect } from 'react';
+import { DeleteOutlined, CreditCardOutlined, DollarOutlined, RiseOutlined, LoadingOutlined, FilterOutlined, CalendarOutlined, EditOutlined, PlusOutlined, UploadOutlined, CloseOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef } from 'react';
 import NewCardDrawer from './newCreditCardDrawer/newCreditCard';
 import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';
 import type { CreditCard } from '../../types/credit-card.interface';
 import type { ProgressProps } from 'antd';
 import type { SearchProps } from 'antd/es/input';
 import NewTransactionModal from '../../components/newExpanseModal/newTransactionModal';
+import ImportOfxModal from '../../components/importOfxModal/ImportOfxModal';
 import { transactionsApiService } from '../../services/api/transactions/transactions.api';
 import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { incomesApiService } from '../../services/api/incomes/incomes.api';
@@ -19,6 +20,12 @@ import type { TransactionItem } from '../../services/api/transactions/transactio
 import type { Category } from '../../types/category.interface';
 import type { Subcategory } from '../../types/subcategory.interface';
 import { truncate } from '../../utils/truncate';
+import Select, { type StylesConfig } from 'react-select';
+import { colourStyles } from '../../components/newExpanseModal/newTransactionModal';
+import type { ColourOption } from '../../components/newExpanseModal/docs/data';
+import { categoriesApiService } from '../../services/api/categories/categories.api';
+import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
+
 
 type CreditCardsProps = {
   onOpenNotification: (type: string, message: string, description?: string) => any;
@@ -45,6 +52,7 @@ function formatDateOnlyForDisplay(isoDate: string | null | undefined): string {
 export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [open, setOpen] = useState(false);
   const [openTransactionDrawer, setOpenTransactionDrawer] = useState(false);
+  const [importOfxOpen, setImportOfxOpen] = useState(false);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCard[]>([]);
   const [cardsPage, setCardsPage] = useState(1);
@@ -66,8 +74,253 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
   const [tempSelectedCategoryIds, setTempSelectedCategoryIds] = useState<string[]>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
+  const [categorySelected, setCategorySelected] = useState<ColourOption | null>(null);
+  const [subcategorySelected, setSubcategorySelected] = useState<ColourOption | null>(null);
+  const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
+  const [subcategoryOptions, setSubcategoryOptions] = useState<ColourOption[]>([]);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [isApplyingBulkCategory, setIsApplyingBulkCategory] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [areSelectsDisabled, setAreSelectsDisabled] = useState(true);
 
+  const observerTargetRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const target = observerTargetRef.current;
+    const container = scrollContainerRef.current;
+    if (!target || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingTransactions && transactions.length < totalCount) {
+          setCurrentPage((prev) => prev + 1);
+        }
+      },
+      {
+        root: container,
+        rootMargin: '100px',
+      }
+    );
+
+    observer.observe(target);
+    return () => {
+      observer.unobserve(target);
+    };
+  }, [isLoadingTransactions, transactions.length, totalCount]);
+
+  const drawerSelectStyles: StylesConfig<ColourOption> = {
+    ...colourStyles,
+    menuPortal: (base) => ({ ...base, zIndex: 1001 }),
+    menu: (base) => ({ ...base, zIndex: 1001 }),
+  };
+
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const handleBulkDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setIsDeleting(true);
+    try {
+      const recordsToDelete = transactions.filter((d) => selectedRowKeys.includes(d.key));
+      for (const record of recordsToDelete) {
+        try {
+          if (record.type === 'expense') {
+            await expensesApiService.deleteExpense(record.key);
+            await delay(500);
+          } else if (record.type === 'income') {
+            await incomesApiService.deleteIncome(record.key);
+          }
+        } catch (err) {
+          console.error('Error deleting transaction:', err);
+        }
+      }
+      setSelectedRowKeys([]);
+      handleTransactionSuccess();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkApplyCategory = async () => {
+    if (selectedRowKeys.length === 0 || !categorySelected?.value) {
+      onOpenNotification('error', 'Please select a category.');
+      return;
+    }
+    if (areSelectsDisabled) {
+      onOpenNotification('error', 'Cannot apply category to mixed transaction types.');
+      return;
+    }
+
+    setIsApplyingBulkCategory(true);
+    try {
+      const recordsToUpdate = transactions.filter((d) => selectedRowKeys.includes(d.key));
+      for (const record of recordsToUpdate) {
+        try {
+          if (record.type === 'expense') {
+            await expensesApiService.updateExpenseCategory(
+              record.key,
+              categorySelected.value,
+              subcategorySelected?.value ?? null
+            );
+          } else if (record.type === 'income') {
+            await incomesApiService.updateIncomeCategory(
+              record.key,
+              categorySelected.value,
+              subcategorySelected?.value ?? null
+            );
+          }
+        } catch (err) {
+          console.error('Error updating transaction category:', err);
+        }
+      }
+      onOpenNotification('success', `Category applied to ${recordsToUpdate.length} transaction(s).`);
+      setSelectedRowKeys([]);
+      setCategorySelected(null);
+      setSubcategorySelected(null);
+      handleTransactionSuccess();
+    } catch (e) {
+      onOpenNotification('error', 'Failed to apply category', e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsApplyingBulkCategory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedRowKeys.length === 0) {
+      setAreSelectsDisabled(true);
+      setCategorySelected(null);
+      setSubcategorySelected(null);
+      setSubcategoryOptions([]);
+      setColourOptions([]);
+      return;
+    }
+
+    const selectedRecords = transactions.filter((d) => selectedRowKeys.includes(d.key));
+    const types = new Set(selectedRecords.map((r) => r.type));
+
+    if (types.size === 1) {
+      const transactionType = Array.from(types)[0];
+      setAreSelectsDisabled(false);
+      void loadCategoriesForType(transactionType);
+    } else {
+      setAreSelectsDisabled(true);
+      setCategorySelected(null);
+      setSubcategorySelected(null);
+      setSubcategoryOptions([]);
+      setColourOptions([]);
+    }
+  }, [selectedRowKeys, transactions]);
+
+  const onCategoryChange = async (colourOptionSelected: ColourOption | null) => {
+    setCategorySelected(colourOptionSelected);
+    setSubcategorySelected(null);
+    if (!colourOptionSelected) {
+      setSubcategoryOptions([]);
+      return;
+    }
+    const subcategories = await subcategoriesApiService.getSubcategoryByCategoryId(colourOptionSelected.value);
+    const colourOptionsSubcategories: ColourOption[] = [];
+    for (const subcategory of subcategories) {
+      colourOptionsSubcategories.push({
+        value: subcategory.id!,
+        label: subcategory.name,
+        color: colourOptionSelected.color,
+      });
+    }
+    setSubcategoryOptions(colourOptionsSubcategories);
+  };
+
+  const onSubcategoryChange = (colourOptionSelected: ColourOption | null) => {
+    setSubcategorySelected(colourOptionSelected);
+  };
+
+  const loadCategoriesForType = async (type: string) => {
+    setCategorySelected(null);
+    setSubcategorySelected(null);
+    setSubcategoryOptions([]);
+    const cats = await categoriesApiService.getCategoriesByType(type);
+    setColourOptions(
+      (cats ?? []).map((c) => ({
+        value: c.id!,
+        label: c.name,
+        color: c.color_hex || '#999',
+      }))
+    );
+  };
+
+  const handleAddCategory = async (record: DataType) => {
+    if (!categorySelected?.value) {
+      onOpenNotification('error', 'Please select a category.');
+      return;
+    }
+    try {
+      if (record.type === 'expense') {
+        setIsUpdatingCategory(true);
+        await expensesApiService.updateExpenseCategory(
+          record.key,
+          categorySelected.value,
+          subcategorySelected?.value ?? null
+        );
+      } else {
+        await incomesApiService.updateIncomeCategory(
+          record.key,
+          categorySelected.value,
+          subcategorySelected?.value ?? null
+        );
+      }
+      onOpenNotification('success', 'Category updated.');
+      handleTransactionSuccess();
+    } catch (e) {
+      onOpenNotification('error', 'Failed to update category', e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsUpdatingCategory(false);
+    }
+  };
+
+  const addCategoryPopoverContent = (
+    <div className="flex-column p-1" style={{ width: 228, maxWidth: 228, boxSizing: 'border-box' }}>
+      <div className="w-100 mr-1 mb-1">
+        <label htmlFor="category" className="py-1">Category</label>
+      </div>
+      <Select<ColourOption, false>
+        value={categorySelected}
+        options={colourOptions}
+        styles={{
+          ...colourStyles,
+          container: (base) => ({ ...base, width: '100%', maxWidth: '100%' }),
+          valueContainer: (base) => ({ ...base, overflow: 'hidden' }),
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+        }}
+        placeholder="Select a category"
+        onChange={(e) => void onCategoryChange(e)}
+        isSearchable={false}
+        menuPlacement="auto"
+        menuPosition="fixed"
+        menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+      />
+      <div className="w-100 my-1">
+        <label htmlFor="subcategory" className="py-1">Subcategory</label>
+      </div>
+      <Select<ColourOption, false>
+        value={subcategorySelected}
+        options={subcategoryOptions}
+        styles={{
+          ...colourStyles,
+          container: (base) => ({ ...base, width: '100%', maxWidth: '100%' }),
+          valueContainer: (base) => ({ ...base, overflow: 'hidden' }),
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+        }}
+        placeholder="Select a subcategory"
+        onChange={(e) => onSubcategoryChange(e)}
+        isClearable
+        menuPlacement="auto"
+        menuPosition="fixed"
+        menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+      />
+    </div>
+  );
 
   const transactionItemToDataType = (item: TransactionItem): DataType => {
     const category = item.categories
@@ -129,11 +382,11 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
     }
   };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (pageToFetch = currentPage, append = false) => {
     setIsLoadingTransactions(true);
     try {
       const res = await transactionsApiService.getTransactions({
-        page: currentPage,
+        page: pageToFetch,
         pageSize: pageSize,
         creditCardId: 'all',
         search: searchText,
@@ -141,13 +394,30 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
       });
       const rows = res.data.map(transactionItemToDataType);
       rows.sort((a, b) => {
-        const dateCompare = a.dateRaw.localeCompare(b.dateRaw);
+        const dateCompare = b.dateRaw.localeCompare(a.dateRaw);
         if (dateCompare !== 0) return dateCompare;
         const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return timeA - timeB;
+        return timeB - timeA;
       });
-      setTransactions(rows);
+
+      if (append) {
+        setTransactions((prev) => {
+          const existingKeys = new Set(prev.map((item) => item.key));
+          const uniqueNewRows = rows.filter((row) => !existingKeys.has(row.key));
+          const nextTransactions = [...prev, ...uniqueNewRows];
+          nextTransactions.sort((a, b) => {
+            const dateCompare = b.dateRaw.localeCompare(a.dateRaw);
+            if (dateCompare !== 0) return dateCompare;
+            const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return timeB - timeA;
+          });
+          return nextTransactions;
+        });
+      } else {
+        setTransactions(rows);
+      }
       setTotalCount(res.total);
       await fetchCategoryStats();
     } catch (error) {
@@ -159,12 +429,28 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
 
   const handleTransactionSuccess = () => {
     fetchCards();
-    fetchTransactions();
+    if (currentPage === 1) {
+      void fetchTransactions(1, false);
+    } else {
+      setCurrentPage(1);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
+    if (isAtBottom && !isLoadingTransactions && transactions.length < totalCount) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    void fetchTransactions(currentPage, currentPage > 1);
   }, [currentPage, pageSize, searchText, selectedCategoryIds]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, selectedCategoryIds]);
 
   const showDrawer = () => {
     setCardToEdit(null);
@@ -339,10 +625,10 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
       </div>
 
       <div className="flex-space-between gap-2">
-        <Button 
-          type="link" 
-          size="small" 
-          onClick={handleReset} 
+        <Button
+          type="link"
+          size="small"
+          onClick={handleReset}
           style={{ width: 90 }}>Reset
         </Button>
         <Button type="primary" size="small" onClick={handleOk} style={{ width: 90 }}>OK</Button>
@@ -439,6 +725,14 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                 />
               )}
 
+              <ImportOfxModal
+                open={importOfxOpen}
+                onClose={() => setImportOfxOpen(false)}
+                onSuccess={handleTransactionSuccess}
+                onOpenNotification={onOpenNotification}
+                showCreditCardSelect={true}
+              />
+
               <div className="flex p-5">
                 <div className="main-content flex-column gap-3" style={{ height: '100%' }}>
                   <div className='flex justify-between'>
@@ -446,7 +740,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                       <h5 className='text-midnight-navy !text-3xl !font-semibold'>Credit Cards</h5>
                       <p className='text-steel-blue font-medium'>Manage your credit cards and track your spending.</p>
                     </div>
-                    <Button className='!rounded-xl !py-5 !text-base'><UploadOutlined className='text-lg'/>Import Transactions</Button>
+                    <Button className='!rounded-xl !py-5 !text-base' onClick={() => setImportOfxOpen(true)}><UploadOutlined className='text-lg' />Import Transactions</Button>
                   </div>
 
                   <div className='flex justify-between gap-3'>
@@ -469,7 +763,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                         <div className='flex justify-between items-center w-full'>
                           <p className='text-lg font-medium text-steel-blue'>Available Limit</p>
                           <div className='p-1 bg-green-500/10 rounded-xl'>
-                            <RiseOutlined className='text-[20px] !text-green-600'/>
+                            <RiseOutlined className='text-[20px] !text-green-600' />
                           </div>
                         </div>
                         <p className='text-3xl font-semibold text-midnight-navy'>{formatCurrency(availableLimit)}</p>
@@ -483,7 +777,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                         <div className='flex justify-between items-center w-full'>
                           <p className='text-lg font-medium text-steel-blue'>Total Spent</p>
                           <div className='p-1 bg-crimson/8 rounded-xl'>
-                            <DollarOutlined className='text-[20px] !text-crimson'/>
+                            <DollarOutlined className='text-[20px] !text-crimson' />
                           </div>
                         </div>
                         <p className='text-3xl font-semibold text-midnight-navy'>{formatCurrency(totalSpent)}</p>
@@ -497,7 +791,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                       <h5 className='text-midnight-navy !text-3xl !font-semibold'>Active Cards</h5>
                       <Button type='default' onClick={showDrawer} icon={<PlusOutlined />}></Button>
                     </div>
-                    <Divider className='my-2'/>
+                    <Divider className='my-2' />
                     <div className='relative flex-column justify-between h-95'>
                       {isLoading ? (
                         <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'>
@@ -547,23 +841,23 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                                       <p className='text-steel-blue font-medium'>Used: <span className='text-midnight-navy font-semibold'>{formatCurrency(cardSpent)}</span></p>
                                       <p className='text-steel-blue font-medium'>Limit: <span className='text-midnight-navy font-semibold'>{formatCurrency(card.credit_limit || 0)}</span></p>
                                     </div>
-                                      <Progress size={{height:10}} strokeColor={progressbarColors(card.card_gradient)} percent={percentUsed} showInfo={false} />
-                                      <div className='flex justify-between'>
-                                        <p className='text-steel-blue font-medium'>Used Limit: <span className='text-midnight-navy font-semibold'>{percentUsed}%</span></p>
-                                        <div className='flex gap-1'>
-                                          <Button size={'small'} icon={<EditOutlined />} onClick={() => handleEditCard(card)}></Button>
-                                          <Popconfirm
-                                            title="Are you sure?"
-                                            onConfirm={() => handleDeleteCard(card.id)}
-                                            cancelText="No"
-                                            okText="Yes"
-                                            icon={null}
-                                            placement="right"
-                                          >
-                                            <Button size={'small'} icon={<DeleteOutlined />}></Button>
-                                          </Popconfirm>
-                                        </div>
+                                    <Progress size={{ height: 10 }} strokeColor={progressbarColors(card.card_gradient)} percent={percentUsed} showInfo={false} />
+                                    <div className='flex justify-between'>
+                                      <p className='text-steel-blue font-medium'>Used Limit: <span className='text-midnight-navy font-semibold'>{percentUsed}%</span></p>
+                                      <div className='flex gap-1'>
+                                        <Button size={'small'} icon={<EditOutlined />} onClick={() => handleEditCard(card)}></Button>
+                                        <Popconfirm
+                                          title="Are you sure?"
+                                          onConfirm={() => handleDeleteCard(card.id)}
+                                          cancelText="No"
+                                          okText="Yes"
+                                          icon={null}
+                                          placement="right"
+                                        >
+                                          <Button size={'small'} icon={<DeleteOutlined />}></Button>
+                                        </Popconfirm>
                                       </div>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -588,34 +882,38 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                   <div className='grid grid-cols-3 gap-3'>
                     {/* Card Transations */}
                     <div className='flex-column border-1 border-black/20 rounded-3xl p-4 col-span-2 bg-white'>
-                      <div className='flex-column gap-3'>
+                      <div className='flex-column gap-1'>
                         <div className='flex justify-between'>
-                        <h4 className='text-midnight-navy font-semibold'>Card Transactions</h4>
+                          <h4 className='text-midnight-navy font-semibold'>Card Transactions</h4>
                           <Button type='default' onClick={showTransactionDrawer} icon={<PlusOutlined />}></Button>
                         </div>
                         <div className='flex justify-between gap-2'>
-                           <Input.Search placeholder="input search text" onSearch={onSearch} size="large" allowClear />
-                           <Popover
+                          <Input.Search placeholder="input search text" onSearch={onSearch} size="large" allowClear />
+                          <Popover
                             content={popoverContent}
                             trigger="click"
                             open={popoverOpen}
                             onOpenChange={handleOpenChange}
                             placement="bottomRight"
                           >
-                            <Button 
-                              type={selectedCategoryIds.length > 0 ? 'primary' : 'default'} 
-                              icon={<FilterOutlined />} 
+                            <Button
+                              type={selectedCategoryIds.length > 0 ? 'primary' : 'default'}
+                              icon={<FilterOutlined />}
                               size="large"
                             />
                           </Popover>
                         </div>
                       </div>
-                      <Divider/>
-                      <Spin spinning={isLoadingTransactions} indicator={<LoadingOutlined spin />} size="large">
+                      <Divider />
+                      <Spin spinning={isLoadingTransactions && currentPage === 1} indicator={<LoadingOutlined spin />} size="large">
                         {transactions.length === 0 ? (
-                            <Empty description="No credit card transactions found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                          <Empty description="No credit card transactions found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                         ) : (
-                          <div className="flex-column gap-2">
+                          <div
+                            ref={scrollContainerRef}
+                            className="flex-column gap-1 overflow-y-auto px-1"
+                            style={{ maxHeight: '420px', overflowAnchor: 'none' }}
+                          >
                             {transactions.map((tx) => {
                               const category = tx.category[0];
                               const subcat = tx.subcategory[0];
@@ -623,73 +921,130 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                               const formattedAmount = tx.amount.toFixed(2).replace('.', ',');
 
                               return (
-                                <div key={tx.key} className='w-100 flex justify-between items-center border-1 border-black/10 rounded-xl p-2 bg-white'>
-                                  <div className='flex-column gap-2'>
-                                    <p className='text-lg font-bold'>{tx.description || 'No Description'}</p>
-                                    <div className='flex gap-1 items-center'>
-                                      <CalendarOutlined />
-                                      <p>{tx.date}</p>
-                                      <div className='container-tags ml-3'>
-                                        {category && (
-                                          <Tag className=" m-0 tag-category" color={color} bordered={true}>
-                                            <p className='font-weight-600 p4'>
-                                              {category.name.charAt(0).toUpperCase() + category.name.slice(1)}
-                                            </p>
-                                          </Tag>
-                                        )}
-                                        {subcat && (
-                                          <Tag style={{ color: `${color}`, borderColor: `${color}`, transform: `translateX(-4px)` }} className='tag-subcategory'>
-                                            <p className='font-weight-300 p5'>
-                                              {subcat.name.charAt(0).toUpperCase() + subcat.name.slice(1)}
-                                            </p>
-                                          </Tag>
-                                        )}
+                                <div key={tx.key} className='flex items-center gap-3 px-1'>
+                                  <Checkbox
+                                    className="scale-130"
+                                    checked={selectedRowKeys.includes(tx.key)}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      setSelectedRowKeys((prev) =>
+                                        checked ? [...prev, tx.key] : prev.filter((k) => k !== tx.key)
+                                      );
+                                    }}
+                                  />
+                                  <div className='w-100 flex justify-between items-center border-1 border-black/10 rounded-xl p-2 bg-white'>
+                                    <div className='flex-column gap-1'>
+                                      <p className='text-lg font-bold'>{tx.description || 'No Description'}</p>
+                                      <div className='flex gap-1 items-center'>
+                                        <CalendarOutlined />
+                                        <p>{tx.date}</p>
+                                        <div className='container-tags ml-3'>
+                                          {category ? (
+                                            <>
+                                              <Tag
+                                                className={`m-0 tag-category ${subcat ? 'has-subcategory' : ''}`}
+                                                style={{
+                                                  backgroundColor: color,
+                                                  borderColor: color,
+                                                  color: '#ffffff',
+                                                  borderRadius: subcat ? '4px 0 0 4px' : '4px',
+                                                  margin: 0,
+                                                  height: '24px',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  padding: '0 8px',
+                                                  fontSize: '12px',
+                                                  lineHeight: '20px',
+                                                }}
+                                                bordered={false}
+                                              >
+                                                <span style={{ color: '#ffffff', fontWeight: 600 }}>
+                                                  {category.name.charAt(0).toUpperCase() + category.name.slice(1)}
+                                                </span>
+                                              </Tag>
+                                              {subcat && (
+                                                <Tag
+                                                  key={subcat.id}
+                                                  className="m-0 tag-subcategory"
+                                                  style={{
+                                                    backgroundColor: '#ffffff',
+                                                    borderColor: color,
+                                                    borderLeft: 'none',
+                                                    color: color,
+                                                    borderRadius: '0 4px 4px 0',
+                                                    margin: 0,
+                                                    height: '24px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    padding: '0 8px',
+                                                    fontSize: '12px',
+                                                    lineHeight: '20px',
+                                                  }}
+                                                  bordered={true}
+                                                >
+                                                  <span style={{ color: color, fontWeight: 400 }}>
+                                                    {subcat.name.charAt(0).toUpperCase() + subcat.name.slice(1)}
+                                                  </span>
+                                                </Tag>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <Popconfirm
+                                              title=""
+                                              overlayStyle={{ width: 260 }}
+                                              description={addCategoryPopoverContent}
+                                              onOpenChange={(open) => {
+                                                if (open) loadCategoriesForType(tx.type);
+                                              }}
+                                              onConfirm={() => handleAddCategory(tx)}
+                                              okButtonProps={{ loading: isUpdatingCategory, iconPosition: "end" }}
+                                              placement="right"
+                                              icon={null}
+                                            >
+                                              <Button icon={<PlusOutlined />} size="small">Add a category</Button>
+                                            </Popconfirm>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className='flex-column gap-2 items-center'>
-                                    <div className='flex justify-end w-full gap-1'>
-                                      <Button icon={<EditOutlined />} onClick={() => handleEditTransaction(tx)}></Button>
-                                      <Popconfirm
-                                        title="Are you sure?"
-                                        onConfirm={() => handleDeleteTransaction(tx.key, tx.type)}
-                                        cancelText="No"
-                                        okText="Yes"
-                                        icon={null}
-                                        placement="right"
-                                      >
-                                        <Button icon={<DeleteOutlined />}></Button>
-                                      </Popconfirm>
+                                    <div className='flex-column gap-1 items-center'>
+                                      <div className='flex justify-end w-full gap-1'>
+                                        <Button icon={<EditOutlined />} size='small' onClick={() => handleEditTransaction(tx)}></Button>
+                                        <Popconfirm
+                                          title="Are you sure?"
+                                          onConfirm={() => handleDeleteTransaction(tx.key, tx.type)}
+                                          cancelText="No"
+                                          okText="Yes"
+                                          icon={null}
+                                          placement="right"
+                                        >
+                                          <Button icon={<DeleteOutlined />} size='small'></Button>
+                                        </Popconfirm>
+                                      </div>
+                                      <p className='text-xl font-medium' style={{ color: tx.type === 'income' ? 'green' : 'red' }}>
+                                        {tx.type === 'income' ? '+' : '-'} R$ {formattedAmount}
+                                      </p>
                                     </div>
-                                    <p className='text-2xl font-medium' style={{ color: tx.type === 'income' ? 'green' : 'red' }}>
-                                      {tx.type === 'income' ? '+' : '-'} R$ {formattedAmount}
-                                    </p>
                                   </div>
                                 </div>
                               );
                             })}
+                            {transactions.length < totalCount && (
+                              <div ref={observerTargetRef} className="flex justify-center p-2">
+                                <Spin indicator={<LoadingOutlined spin />} size="small" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </Spin>
-                      {totalCount > 0 && (
-                        <div className="flex justify-end mt-3">
-                          <Pagination
-                            current={currentPage}
-                            pageSize={pageSize}
-                            total={totalCount}
-                            onChange={(page) => setCurrentPage(page)}
-                            showSizeChanger={false}
-                          />
-                        </div>
-                      )}
                     </div>
                     {/* Trasactions per Category */}
                     <div className='flex-column gap-2 border-1 border-black/20 rounded-3xl p-4 col-span-1 bg-white relative'>
                       <div className='flex-column gap-1'>
                         <h5 className='text-midnight-navy !text-3xl !font-semibold'>Categories Breakdown</h5>
-                        <Divider/>
+                        <Divider />
                       </div>
-                      <div className='flex-column gap-3' style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                      <div className='flex-column gap-2' style={{ maxHeight: '350px', overflowY: 'auto' }}>
                         {categoryTotals.length === 0 ? (
                           <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'>
                             <Empty description="No categories found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -705,7 +1060,7 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                                     <p className='text-lg font-semibold'>{cat.categoryName}</p>
                                     <p className='text-lg font-semibold'>{formatCurrency(cat.amount)}</p>
                                   </div>
-                                  <Progress size={{height:10}} percent={percent} strokeColor={cat.color} showInfo={false} />
+                                  <Progress size={{ height: 10 }} percent={percent} strokeColor={cat.color} showInfo={false} />
                                 </div>
                               );
                             });
@@ -714,6 +1069,84 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
                       </div>
                     </div>
                   </div>
+                  <Drawer
+                    title="Bulk Actions"
+                    placement="right"
+                    width={320}
+                    closable={true}
+                    mask={false}
+                    onClose={() => setSelectedRowKeys([])}
+                    open={selectedRowKeys.length > 0}
+                    className='bulk-drawer-element'
+                  >
+                    <div className='flex flex-column gap-2 h-full justify-between py-2'>
+                      <div className='flex-column gap-3'>
+                        <div className="flex justify-between items-center">
+                          <span className='text-normal text-red'>
+                            Selected: {selectedRowKeys.length} transaction{selectedRowKeys.length > 1 ? 's' : ''}
+                          </span>
+                          <Popconfirm
+                            title="Are you sure?"
+                            onConfirm={handleBulkDelete}
+                            okText="Yes"
+                            cancelText="No"
+                            icon={null}
+                            okButtonProps={{ loading: isDeleting, iconPosition: "end" }}
+                            placement="bottom"
+                          >
+                            <Button
+                              danger
+                              loading={isDeleting}
+                              icon={<DeleteOutlined />}
+                            >
+                            </Button>
+                          </Popconfirm>
+                        </div>
+                        <div className="flex-column gap-1">
+                          <label htmlFor="bulk-category" className="font-weight-500 py-1">Category</label>
+                          <Select<ColourOption, false>
+                            id="bulk-category"
+                            value={categorySelected}
+                            options={colourOptions}
+                            styles={drawerSelectStyles}
+                            placeholder="Select a category"
+                            onChange={(e) => void onCategoryChange(e)}
+                            isSearchable={false}
+                            menuPlacement="bottom"
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            isDisabled={areSelectsDisabled}
+                          />
+                        </div>
+                        <div className="flex-column gap-1">
+                          <label htmlFor="bulk-subcategory" className="font-weight-500 py-1">Subcategory</label>
+                          <Select<ColourOption, false>
+                            id="bulk-subcategory"
+                            value={subcategorySelected}
+                            options={subcategoryOptions}
+                            styles={drawerSelectStyles}
+                            placeholder="Select a subcategory"
+                            onChange={(e) => onSubcategoryChange(e)}
+                            menuPlacement="bottom"
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            isDisabled={areSelectsDisabled}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-column">
+                        <Button
+                          type="primary"
+                          onClick={handleBulkApplyCategory}
+                          loading={isApplyingBulkCategory}
+                          disabled={areSelectsDisabled || !categorySelected?.value}
+                          block
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    </div>
+                  </Drawer>
                 </div>
               </div>
             </Content>
@@ -723,3 +1156,4 @@ export default function Reports({ onOpenNotification }: CreditCardsProps) {
     </>
   );
 }
+
