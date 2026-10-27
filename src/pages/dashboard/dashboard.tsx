@@ -631,26 +631,9 @@ export default function DashboardPage({ onOpenNotification }: DashboardProps = {
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {item.diff !== null && (
-                                    <span
-                                      className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${item.diff > 0
-                                          ? 'bg-red-200/20 text-red-500'
-                                          : 'bg-green-200/20 text-green-500'
-                                        }`}
-                                    >
-                                      {item.diff > 0 ? (
-                                        <CaretUpOutlined className="text-[10px]" />
-                                      ) : (
-                                        <CaretDownOutlined className="text-[10px]" />
-                                      )}
-                                      {item.diff > 0 ? `+${item.diff.toFixed(1)}%` : `${item.diff.toFixed(1)}%`}
-                                    </span>
-                                  )}
-                                  <span className="text-sm font-semibold text-blue-500">
-                                    R${item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </span>
-                                </div>
+                                <span className="text-sm font-semibold text-blue-500">
+                                  R${item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
                               </div>
                             );
                           })}
