@@ -582,10 +582,12 @@ export default function Reports() {
   }, [getDisplayedValues]);
 
   return (
-  <>
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sidebar onOpenDashboardPage={() => navigate('/reports')} onOpenCategoriesPage={() => navigate('/categories')} />
-      <Layout style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sidebar
+        onOpenDashboardPage={() => navigate('/dashboard')}
+        onOpenCategoriesPage={() => navigate('/categories')}
+      />
+      <Layout className="!bg-white-300 flex flex-col flex-1">
         <ConfigProvider
           theme={{
             components: {
@@ -595,130 +597,142 @@ export default function Reports() {
             },
           }}
         >
-          <Content>
-              {isIncomeModalOpen && (
-                <NewIncomeModal onClose={() => setIsIncomeModalOpen(false)} income={null}>
-                </NewIncomeModal>
-              )}
-              {isCategoryModalOpen && (
-                <NewCategoryModal onClose={() => setIsCategoryModalOpen(false)} uptadeCategories={() => {}}>
-                </NewCategoryModal>
-              )}
-              <div className="flex p-5">
-                <div className="main-content flex-column" style={{ height: '100%'}}>
-                  <div className='ml-2 mb-2'>
-                    <h5 className='text-midnight-navy !text-3xl !font-semibold'>Financial Reports</h5>                                
-                    <p className='text-steel-blue font-medium'>Detailed analysis and insights for financial decision-making.</p>
-                  </div>
-                  <div className='flex-column'>
-                    <div className='flex flex-column gap-3 border-silver-mist/60 border-1 rounded-3xl px-4 py-3 bg-white'>
-                        <div className='flex-space-between'>
-                          <div className='flex-center gap-2'>
-                            <div className='p-1 bg-[#1a365d]/8 rounded-xl'>
-                              <FilterOutlined style={{ fontSize: '21px', color: "#1a365d" }}/>
-                            </div>
-                            <h5 className='text-midnight-navy !text-2xl !font-semibold'>Filters</h5>  
-                          </div>
-                          <Button
-                            onClick={clearFilters}
-                          >
-                            <CloseOutlined />
-                            Clear filters
-                          </Button>
-                        </div>
-                        <div className='flex-space-between'>
-                          <div className='flex-column gap-1'>
-                            <p className='text-md font-medium text-steel-blue'>Quick Filter Period</p>
-                            <Select
-                              style={{ minWidth: 190 }}
-                              placeholder="Select a Period"
-                              value={selectedPeriod}
-                              size={'large'}
-                              onChange={(value) => {
-                                setSelectedPeriod(value);
-                                if (value !== 'custom') {
-                                  setSelectedDateRange(null);
-                                }
-                              }}
-                              options={[
-                                {value: 'last_30_days', label: 'Last 30 Days'},
-                                {value: 'last_week', label: 'Last Week'},
-                                {value: 'last_month', label: 'Last Month'},
-                                {value: 'last_3_months', label: 'Last 3 Months'},
-                                {value: 'custom', label: 'Custom'},
-                              ]}
-                            />
-                          </div>
-                          <div className='flex-column gap-1'>
-                            <p className='text-md font-medium text-steel-blue'>Date Range</p>
-                            <RangePicker 
-                              value={selectedPeriod === 'custom' ? selectedDateRange : undefined}
-                              size={'large'}
-                              onChange={(dates) => setSelectedDateRange(dates)}
-                              disabled={selectedPeriod !== 'custom'}
-                              disabledDate={disabledDate}
-                              allowClear
-                              allowEmpty
-                              style={{ minWidth: 350 }} 
-                            />
-                          </div>
-                          <div className='flex-column gap-1'>
-                            <p className='text-md font-medium text-steel-blue'>Transaction Type</p>
-                            <Select
-                              placeholder="Select a Type"
-                              value={selectedTransactionType || undefined}
-                              size={'large'}
-                              onChange={(value) => {
-                                setSelectedTransactionType(value);
-                                setSelectedCategories([]); //clear selected categories when transaction type is changed
-                                setInternalSelectedCategories(new Set()); //clear internal selection
-                              }}
-                              options={[
-                                {value: 'expense', label: 'Expense'},
-                                {value: 'income', label: 'Income'},
-                                {value: 'all', label: 'All'},   
-                              ]}
-                            />
-                          </div>
-                          <div className='flex-column gap-1'>
-                            <p className='text-md font-medium text-steel-blue'>Select a Category or Subcategory</p>
-                            <TreeSelect
-                              multiple
-                              style={{ minWidth: 350 }}
-                              size={'large'}
-                              placeholder="Select categories"
-                              defaultValue={['expenses-group', 'incomes-group']}
-                              value={selectedCategories}
-                              treeCheckable={true}
-                              showCheckedStrategy={SHOW_PARENT}
-                              onChange={handleCategoryTreeChange}
-                              treeData={buildCategoryTreeData}
-                            />
-                          </div>
-                        </div>
-                        <div className='flex-end'>
-                          <Button type="primary" onClick={applyFilters}>
-                            <FilterOutlined />
-                            Apply Filters
-                          </Button>
-                        </div>
-                    </div>
-                    <div className='second-line flex my-2'>
-                    </div>
+          <Content className="p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] w-full mx-auto">
+            {isIncomeModalOpen && (
+              <NewIncomeModal onClose={() => setIsIncomeModalOpen(false)} income={null} />
+            )}
+            {isCategoryModalOpen && (
+              <NewCategoryModal onClose={() => setIsCategoryModalOpen(false)} uptadeCategories={() => {}} />
+            )}
 
-                    <ChartsSection
-                      totalExpenses={totalExpenses}
-                      totalIncomes={totalIncomes}
-                      filtersApplied={filtersApplied}
-                      filteredExpenses={filteredExpenses}
-                      filteredIncomes={filteredIncomes}
-                    />
+            {/* Header Section */}
+            <div className="flex flex-col gap-1">
+              <h1 className="text-3xl font-bold text-blue-500 tracking-tight">
+                Financial Reports
+              </h1>
+              <p className="text-black-200 text-sm">
+                Detailed analysis and insights for financial decision-making.
+              </p>
+            </div>
+
+            {/* Filter Section Card */}
+            <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-blue-200/20 rounded-xl flex items-center justify-center">
+                    <FilterOutlined className="text-lg text-blue-500" />
                   </div>
+                  <h3 className="text-xl text-blue-500 font-medium">Filters</h3>
+                </div>
+                <Button
+                  onClick={clearFilters}
+                  className="!border-white-500 !text-black-400 hover:!text-blue-500 hover:!border-blue-500 rounded-xl"
+                >
+                  <CloseOutlined />
+                  Clear filters
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-black-400">Quick Filter Period</label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select a Period"
+                    value={selectedPeriod}
+                    size="large"
+                    onChange={(value) => {
+                      setSelectedPeriod(value);
+                      if (value !== 'custom') {
+                        setSelectedDateRange(null);
+                      }
+                    }}
+                    options={[
+                      { value: 'last_30_days', label: 'Last 30 Days' },
+                      { value: 'last_week', label: 'Last Week' },
+                      { value: 'last_month', label: 'Last Month' },
+                      { value: 'last_3_months', label: 'Last 3 Months' },
+                      { value: 'custom', label: 'Custom' },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-black-400">Date Range</label>
+                  <RangePicker
+                    value={selectedPeriod === 'custom' ? selectedDateRange : undefined}
+                    size="large"
+                    onChange={(dates) => setSelectedDateRange(dates)}
+                    disabled={selectedPeriod !== 'custom'}
+                    disabledDate={disabledDate}
+                    allowClear
+                    allowEmpty
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-black-400">Transaction Type</label>
+                  <Select
+                    placeholder="Select a Type"
+                    value={selectedTransactionType || undefined}
+                    size="large"
+                    className="w-full"
+                    onChange={(value) => {
+                      setSelectedTransactionType(value);
+                      setSelectedCategories([]);
+                      setInternalSelectedCategories(new Set());
+                    }}
+                    options={[
+                      { value: 'expense', label: 'Expense' },
+                      { value: 'income', label: 'Income' },
+                      { value: 'all', label: 'All' },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-black-400">Category or Subcategory</label>
+                  <TreeSelect
+                    multiple
+                    className="w-full"
+                    size="large"
+                    placeholder="Select categories"
+                    defaultValue={['expenses-group', 'incomes-group']}
+                    value={selectedCategories}
+                    treeCheckable={true}
+                    showCheckedStrategy={SHOW_PARENT}
+                    onChange={handleCategoryTreeChange}
+                    treeData={buildCategoryTreeData}
+                    maxTagCount="responsive"
+                  />
                 </div>
               </div>
+
+              <div className="flex justify-end pt-1">
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={applyFilters}
+                  className="!bg-blue-500 hover:!bg-blue-600 rounded-xl px-6 flex items-center gap-2"
+                >
+                  <FilterOutlined />
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+
+            {/* Charts Section */}
+            <ChartsSection
+              totalExpenses={totalExpenses}
+              totalIncomes={totalIncomes}
+              filtersApplied={filtersApplied}
+              filteredExpenses={filteredExpenses}
+              filteredIncomes={filteredIncomes}
+            />
           </Content>
         </ConfigProvider>
       </Layout>
     </Layout>
-  </>)
+  );
 }

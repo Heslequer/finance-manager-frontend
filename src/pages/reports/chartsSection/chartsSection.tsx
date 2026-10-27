@@ -1,6 +1,12 @@
 import './chartsSection.scss';
 import { TreeSelect, Spin, Select, Progress, Divider, Empty } from 'antd';
-import { DollarOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  LoadingOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
+  RiseOutlined,
+  FallOutlined,
+} from '@ant-design/icons';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import {
@@ -83,7 +89,7 @@ export default function ChartsSection({
         .filter(exp => exp.subcategory_id === subcategory.id)
         .reduce((sum, exp) => sum + Number(exp.amount), 0);
       const parentCategory = categories.find(cat => cat.id === subcategory.category_id);
-      const subcategoryColor = parentCategory?.color_hex || '#f44336';
+      const subcategoryColor = parentCategory?.color_hex || '#C72629';
       data2.push({label: subcategory.name, value: amount, color: subcategoryColor});
     }
     const updatedData2 = data2.map((item) =>{
@@ -123,7 +129,7 @@ export default function ChartsSection({
         .filter(inc => inc.subcategory_id === subcategory.id)
         .reduce((sum, inc) => sum + Number(inc.amount), 0);
       const parentCategory = categories.find(cat => cat.id === subcategory.category_id);
-      const subcategoryColor = parentCategory?.color_hex || '#4caf50';
+      const subcategoryColor = parentCategory?.color_hex || '#26C739';
       data2Income.push({label: subcategory.name, value: amount, color: subcategoryColor});
     }
     const updatedData2Income = data2Income.map((item) =>{
@@ -243,7 +249,7 @@ export default function ChartsSection({
           amount,
           percentage: totalExp > 0 ? (amount / totalExp) * 100 : 0,
           type: 'expense',
-          color: cat.color_hex || '#f44336',
+          color: cat.color_hex || '#C72629',
         });
       }
     }
@@ -258,7 +264,7 @@ export default function ChartsSection({
           amount,
           percentage: totalInc > 0 ? (amount / totalInc) * 100 : 0,
           type: 'income',
-          color: cat.color_hex || '#4caf50',
+          color: cat.color_hex || '#26C739',
         });
       }
     }
@@ -505,106 +511,176 @@ export default function ChartsSection({
     hideLegend: true,
   } satisfies PieChartProps), [data2Income]);
 
-    return (<>
-    <div className='flex flex-column gap-3'>
-      <div className='flex gap-3'>
-        <div className="py-3 px-4 gap-3 justify-between border-silver-mist/60 border-1 rounded-3xl flex-1 flex-column bg-white">
-          <div className="flex justify-between">
-            <p className="text-lg font-medium text-steel-blue">Total Balance</p>
-            <div className='p-1 bg-blue-800/7 rounded-xl'>
-              <DollarOutlined className='text-[20px] !text-blue-800' />
-            </div>          
-          </div>
-          <p className='text-3xl font-semibold text-midnight-navy'>
-            R$ {filtersApplied ? (totalIncomes - totalExpenses).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
-          </p>
-          <p className='text-lg text-steel-blue'>{ totalIncomes - totalExpenses >= 0 ? 'Positive' : 'Negative' } balance for the period</p>
-        </div>
-
-        <div className="py-3 px-4 gap-2 justify-between border-silver-mist/60 border-1 rounded-3xl flex-1 flex-column bg-white">
-          <div className="flex justify-between">
-            <p className="text-lg font-medium text-steel-blue">Incomes</p>
-            <div className='p-1 bg-green-500/8 rounded-xl'>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" className="icon green">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-              </svg>
-            </div>          
-          </div>
-          <p className="text-3xl font-semibold text-midnight-navy">
-            R$ {filtersApplied ? totalIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
-          </p>
-          <p className='text-lg text-steel-blue'>Sum of all income transactions</p>
-        </div>
-
-        <div className="py-3 px-4 gap-2 justify-between border-silver-mist/60 border-1 rounded-3xl flex-1 flex-column bg-white">
-          <div className="flex justify-between">
-            <p className="text-lg font-medium text-steel-blue">Expenses</p>
-            <div className='p-1 bg-red-500/8 rounded-xl'>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" className="icon red">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181" />
-              </svg>
+  return (
+    <div className="flex flex-col gap-6 w-full">
+      {/* Top Row: Metric Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Balance */}
+        <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between gap-6 min-h-[160px]">
+          <span className="text-xl text-blue-500">Total Balance</span>
+          {!filtersApplied ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
             </div>
-          </div>
-          <p className="text-3xl font-semibold text-midnight-navy">
-            R$ {filtersApplied ? totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
-          </p>
-          <p className='text-lg text-steel-blue'>Sum of all expense transactions</p>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-semibold text-blue-700">
+                  R${' '}
+                  {(totalIncomes - totalExpenses).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </h2>
+                <span
+                  className={`${
+                    totalIncomes - totalExpenses >= 0
+                      ? 'bg-green-200/20 text-green-500'
+                      : 'bg-red-200/20 text-red-500'
+                  } h-fit px-2 rounded-full flex items-center gap-1 text-[11px] font-semibold`}
+                >
+                  {totalIncomes - totalExpenses >= 0 ? (
+                    <CaretUpOutlined className="text-[10px]" />
+                  ) : (
+                    <CaretDownOutlined className="text-[10px]" />
+                  )}
+                  <p>{totalIncomes - totalExpenses >= 0 ? 'Positive' : 'Negative'}</p>
+                </span>
+              </div>
+              <span
+                className={`${
+                  totalIncomes - totalExpenses >= 0 ? 'text-green-500' : 'text-red-500'
+                } text-4xl`}
+              >
+                {totalIncomes - totalExpenses >= 0 ? <RiseOutlined /> : <FallOutlined />}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Total Incomes */}
+        <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between gap-6 min-h-[160px]">
+          <span className="text-xl text-blue-500">Total Incomes</span>
+          {!filtersApplied ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-semibold text-blue-700">
+                  R${' '}
+                  {totalIncomes.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </h2>
+              </div>
+              <span className="text-green-500 text-4xl">
+                <RiseOutlined />
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Total Expenses */}
+        <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between gap-6 min-h-[160px]">
+          <span className="text-xl text-blue-500">Total Expenses</span>
+          {!filtersApplied ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-semibold text-blue-700">
+                  R${' '}
+                  {totalExpenses.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </h2>
+              </div>
+              <span className="text-red-500 text-4xl">
+                <FallOutlined />
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className='flex gap-3 max-h-[480px]'>
-        <div className='flex-column py-3 px-4 flex-start border-silver-mist/60 border-1 rounded-3xl flex-1 bg-white'>
-          <div className='w-full flex flex-column'>
-            <div className="flex justify-between">
-              <h5 className='text-midnight-navy !text-2xl !font-semibold'>Line Chart</h5> 
+      {/* Middle Row: Line Chart (4 cols) & Category Ranking (3 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        {/* Cash Flow History Line Chart */}
+        <div className="lg:col-span-4 bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl text-blue-500">Cash Flow History</h3>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                <span className="text-white-600">Income</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-white-600">Expenses</span>
+              </div>
               <Select
-                  defaultValue="day"
-                  style={{ width: 120 }}
-                  onChange={(e) => setLineChartTimeframe(e)}
-                  options={[
-                      { value: 'day', label: 'Day' },
-                      { value: 'week', label: 'Week' },
-                      { value: 'month', label: 'Month' },
-                  ]}
+                defaultValue="day"
+                size="small"
+                style={{ width: 100 }}
+                onChange={(e) => setLineChartTimeframe(e)}
+                options={[
+                  { value: 'day', label: 'Day' },
+                  { value: 'week', label: 'Week' },
+                  { value: 'month', label: 'Month' },
+                ]}
               />
             </div>
-            <Divider />
-            <Spin spinning={isLoadingLineChart}
-                indicator={<LoadingOutlined spin/>}
-                size="large"
-            >
-              {!isLoadingLineChart && (!filtersApplied || (lineChartLabels.length === 0 && incomesLineData.length === 0 && expensesLineData.length === 0)) ? (
-                !filtersApplied ? (
-                  <div className='flex-center' style={{ minHeight: '320px', width: '100%', color: '#999' }}>
-                    Apply filters to view data
-                  </div>
+          </div>
+          <Divider className="my-1 border-white-500" />
+          <Spin
+            spinning={isLoadingLineChart}
+            indicator={<LoadingOutlined style={{ fontSize: 32, color: 'var(--color-blue-500)' }} spin />}
+          >
+            {!isLoadingLineChart &&
+            (!filtersApplied ||
+              (lineChartLabels.length === 0 &&
+                incomesLineData.length === 0 &&
+                expensesLineData.length === 0)) ? (
+              <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                {!filtersApplied ? (
+                  <p className="text-sm text-black-300">Apply filters to view data</p>
                 ) : (
-                  <div className='flex-center h-full' style={{ minHeight: '320px', width: '100%' }}>
-                    <Empty description="No data available for the selected period" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                  </div>
-                )
-              ) : (
+                  <Empty
+                    description="No data available for the selected period"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="h-[300px] w-full pt-2">
                 <LineChart
                   xAxis={[{ data: lineChartLabels, scaleType: 'point' }]}
                   series={[
-                    { 
+                    {
                       id: 'incomes',
-                      curve: "natural", 
+                      curve: 'natural',
                       data: incomesLineData,
                       label: 'Incomes',
-                      color: '#4caf50',
+                      color: 'var(--color-green-500)',
                       area: true,
                     },
-                    { 
+                    {
                       id: 'expenses',
-                      curve: "natural", 
+                      curve: 'natural',
                       data: expensesLineData,
                       label: 'Expenses',
-                      color: '#f44336',
-                      area: true
+                      color: 'var(--color-red-500)',
+                      area: true,
                     },
                   ]}
-                  height={300}
+                  height={290}
+                  margin={{ left: 30, right: 20, top: 20, bottom: 25 }}
                   sx={{
                     '& .MuiAreaElement-series-incomes': {
                       fill: 'url(#incomesGradient)',
@@ -616,60 +692,87 @@ export default function ChartsSection({
                 >
                   <defs>
                     <linearGradient id="incomesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4caf50" stopOpacity={0.6} />
-                      <stop offset="95%" stopColor="#4caf50" stopOpacity={0.05} />
+                      <stop offset="5%" stopColor="var(--color-green-500)" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="var(--color-green-500)" stopOpacity={0.05} />
                     </linearGradient>
                     <linearGradient id="expensesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f44336" stopOpacity={0.6} />
-                      <stop offset="95%" stopColor="#f44336" stopOpacity={0.05} />
+                      <stop offset="5%" stopColor="var(--color-red-500)" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="var(--color-red-500)" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                 </LineChart>
-              )}
-            </Spin>
-          </div>
+              </div>
+            )}
+          </Spin>
         </div>
 
-        <div className="flex-column py-3 px-4 gap-2 border-silver-mist/60 border-1 rounded-3xl flex-1 bg-white relative">
-          <div className='flex-column'>
-            <h5 className='text-midnight-navy !text-2xl !font-semibold'>Ranking</h5>
-            <Divider />
+        {/* Category Ranking */}
+        <div className="lg:col-span-3 bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl text-blue-500">Category Ranking</h3>
+            <span className="text-xs text-white-700">Top Categories</span>
           </div>
-        <div className="flex-column gap-3" style={{ minHeight: '320px', maxHeight: '420px', overflowY: 'auto' }}>
-            <Spin spinning={isLoadingRanking} indicator={<LoadingOutlined spin />} size="large">
+          <Divider className="my-1 border-white-500" />
+          <div className="flex-1 flex flex-col justify-center min-h-[300px]">
+            <Spin
+              spinning={isLoadingRanking}
+              indicator={<LoadingOutlined style={{ fontSize: 32, color: 'var(--color-blue-500)' }} spin />}
+            >
               {!isLoadingRanking && (
                 <>
                   {!filtersApplied ? (
-                    <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-                      Apply filters to view data
+                    <div className="flex-1 flex items-center justify-center min-h-[280px]">
+                      <p className="text-sm text-black-300">Apply filters to view data</p>
                     </div>
                   ) : rankingData.length === 0 ? (
-                    <div className='flex-center h-full' style={{ minHeight: '320px', width: '100%' }}>
-                      <Empty description="No data available for the selected period" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                    <div className="flex-1 flex items-center justify-center min-h-[280px]">
+                      <Empty
+                        description="No data available for the selected period"
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
                     </div>
                   ) : (
-                    <div className='flex-column gap-3'>
+                    <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto px-1 py-1">
                       {rankingData.map((row, idx) => {
                         const percent = Math.round(row.percentage);
                         return (
-                          <div key={`${row.title}-${row.type}-${idx}`} className='flex-column gap-1'>
-                            <div className='flex justify-between items-center'>
-                              <div className='flex-column'>
-                                <p className='text-lg font-semibold'>{row.title}</p>
-                                <span className='text-sm text-steel-blue font-medium'>
+                          <div
+                            key={`${row.title}-${row.type}-${idx}`}
+                            className="p-3 rounded-[16px] border border-white-500/60 bg-white-200 hover:border-white-500 hover:shadow-xs transition-all flex flex-col gap-1.5"
+                          >
+                            <div className="flex justify-between items-center text-sm">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-black-500">{row.title}</span>
+                                <span className="text-xs text-white-700">
                                   {row.transactionCount} transaction{row.transactionCount === 1 ? '' : 's'}
                                 </span>
                               </div>
-                              <div className='flex-column items-end'>
-                                <p className={`text-lg font-semibold ${row.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                                  R$ {row.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                                <span className='text-sm text-steel-blue font-medium'>
+                              <div className="flex flex-col items-end">
+                                <span
+                                  className={`font-semibold ${
+                                    row.type === 'income' ? 'text-green-500' : 'text-red-500'
+                                  }`}
+                                >
+                                  R${' '}
+                                  {row.amount.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                                <span className="text-xs text-white-700">
                                   {row.percentage.toFixed(1)}% of total {row.type}
                                 </span>
                               </div>
                             </div>
-                            <Progress size={{ height: 10 }} percent={percent} strokeColor={row.color} showInfo={false} />
+                            <Progress
+                              percent={percent}
+                              strokeColor={
+                                row.color ||
+                                (row.type === 'income' ? 'var(--color-green-500)' : 'var(--color-red-500)')
+                              }
+                              showInfo={false}
+                              size="small"
+                            />
                           </div>
                         );
                       })}
@@ -682,273 +785,272 @@ export default function ChartsSection({
         </div>
       </div>
 
-      <div className='flex gap-3 max-h-[480px]'>
-        <div className="py-3 px-4 gap-2 justify-between border-silver-mist/60 border-1 rounded-3xl flex-1 flex-column bg-white">
-          <div className="flex w-full justify-between">
-              <h5 className='text-midnight-navy !text-2xl !font-semibold'>Expenses</h5>
-              <TreeSelect
-                  defaultValue="categories-bar"
-                  value={chartType}
-                  key={chartType}
-                  prefix={
-                  chartType.split('-')[0].charAt(0).toUpperCase() + 
-                  chartType.split('-')[0].slice(1).toLowerCase()
-                  }
-                  style={{ width: 180 }}
-                  onChange={(e) => setChartType(e)}
-                  placeholder="Select Chart Type"
-                  treeDefaultExpandAll
-                  treeData={[
-                  {
-                      label: 'Categories',
-                      title: 'Categories',
-                      value: 'categories',
-                      selectable: false,
-                      children: [
-                      {
-                          title: 'Bar',
-                          value: 'categories-bar',
-                      },
-                      {
-                          title: 'Pie',
-                          value: 'categories-pie',
-                      },
-                      ],
-                  },
-                  {
-                      label: 'Subcategories',
-                      title: 'Subcategories',
-                      value: 'subcategories',
-                      selectable: false,
-                      children: [
-                      {
-                          title: 'Bar',
-                          value: 'subcategories-bar',
-                      },
-                      {
-                          title: 'Pie',
-                          value: 'subcategories-pie',
-                      },
-                      ],
-                  },
-                  ]}
-              />
-          </div>
-          <Divider />
-          <div className='chart-container pt-2'>
-              <Spin spinning={isLoadingExpensesChart}
-                  indicator={<LoadingOutlined spin/>}
-                  size="large"
-              >
-                  {!isLoadingExpensesChart && (!filtersApplied || (expensesCategories.length === 0 && data1.length === 0 && data2.length === 0)) ? (
-                    !filtersApplied ? (
-                      <div className='flex-center' style={{ minHeight: '300px', width: '100%', color: '#999' }}>
-                        Apply filters to view data
-                      </div>
-                    ) : (
-                      <div className='flex-center h-full' style={{ minHeight: '300px', width: '100%' }}>
-                        <Empty description="No data available for the selected period" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                      </div>
-                    )
-                  ) : chartType === 'categories-pie' ? (
-                  <PieChart
-                      {...settingsCategoriesPie}
-                      sx={{
-                      '& .MuiPieArcLabel-root': {
-                          textAnchor: 'middle',
-                          dominantBaseline: 'middle',
-                          fontSize: 12,
-                      }
-                      }}
-                  />
-                  ) : chartType === 'categories-bar' ? (
-                  <BarChart
-                      xAxis={[{ 
-                      data: expensesCategories,
-                      colorMap: {
-                          type: "ordinal",
-                          values: expensesCategories,
-                          colors: expensesCategoriesColors,
-                      },
-                      }]}
-                      series={[{data: expensesAmountByCategory}]}
-                      height={300}
-                  />
-                  ) : chartType === 'subcategories-pie' ? (
-                  <PieChart
-                      {...settingsSubcategoriesPie}
-                      sx={{
-                      '& .MuiPieArcLabel-root': {
-                          textAnchor: 'middle',
-                          dominantBaseline: 'middle',
-                          fontSize: 12,
-                      }
-                      }}
-                  />
-                  ) : chartType === 'subcategories-bar' ? (
-                  <BarChart
-                      xAxis={[{ 
-                      data: data2.map(item => item.label),
-                      colorMap: {
-                          type: "ordinal",
-                          values: data2.map(item => item.label),
-                          colors: data2.map(item => item.color),
-                      },
-                      }]}
-                      series={[{data: data2.map(item => item.value)}]}
-                      height={300}
-                  />
-                  ) : (
-                  <BarChart
-                      xAxis={[{ 
-                      data: expensesCategories,
-                      colorMap: {
-                          type: "ordinal",
-                          values: expensesCategories,
-                          colors: expensesCategoriesColors,
-                      },
-                      }]}
-                      series={[{data: expensesAmountByCategory}]}
-                      height={300}
-                  />
-                  )}
-              </Spin>                                  
-          </div>
-        </div>
-        
-        <div className="py-3 px-4 gap-2 justify-between border-silver-mist/60 border-1 rounded-3xl flex-1 flex-column bg-white">
-          <div className="flex w-full justify-between">
-            <h5 className='text-midnight-navy !text-2xl !font-semibold'>Incomes</h5>
+      {/* Bottom Row: Expenses Breakdown & Incomes Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Expenses Breakdown */}
+        <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl text-blue-500">Expenses Breakdown</h3>
             <TreeSelect
-                defaultValue="categories-bar"
-                value={chartTypeIncome}
-                key={chartTypeIncome}
-                prefix={
-                chartTypeIncome.split('-')[0].charAt(0).toUpperCase() + 
-                chartTypeIncome.split('-')[0].slice(1).toLowerCase()
-                }
-                style={{ width: 180 }}
-                onChange={(e) => setChartTypeIncome(e)}
-                placeholder="Select Chart Type"
-                treeDefaultExpandAll
-                treeData={[
+              defaultValue="categories-bar"
+              value={chartType}
+              key={chartType}
+              prefix={
+                chartType.split('-')[0].charAt(0).toUpperCase() +
+                chartType.split('-')[0].slice(1).toLowerCase()
+              }
+              style={{ width: 180 }}
+              onChange={(e) => setChartType(e)}
+              placeholder="Select Chart Type"
+              treeDefaultExpandAll
+              treeData={[
                 {
-                    label: 'Categories',
-                    title: 'Categories',
-                    value: 'categories',
-                    selectable: false,
-                    children: [
-                    {
-                        title: 'Bar',
-                        value: 'categories-bar',
-                    },
-                    {
-                        title: 'Pie',
-                        value: 'categories-pie',
-                    },
-                    ],
+                  label: 'Categories',
+                  title: 'Categories',
+                  value: 'categories',
+                  selectable: false,
+                  children: [
+                    { title: 'Bar', value: 'categories-bar' },
+                    { title: 'Pie', value: 'categories-pie' },
+                  ],
                 },
                 {
-                    label: 'Subcategories',
-                    title: 'Subcategories',
-                    value: 'subcategories',
-                    selectable: false,
-                    children: [
-                    {
-                        title: 'Bar',
-                        value: 'subcategories-bar',
-                    },
-                    {
-                        title: 'Pie',
-                        value: 'subcategories-pie',
-                    },
-                    ],
+                  label: 'Subcategories',
+                  title: 'Subcategories',
+                  value: 'subcategories',
+                  selectable: false,
+                  children: [
+                    { title: 'Bar', value: 'subcategories-bar' },
+                    { title: 'Pie', value: 'subcategories-pie' },
+                  ],
                 },
-                ]}
+              ]}
             />
           </div>
-          <Divider />
-          <div className='chart-container pt-2'>
-            <Spin spinning={isLoadingIncomesChart}
-                indicator={<LoadingOutlined spin/>}
-                size="large"
+          <Divider className="my-1 border-white-500" />
+          <div className="chart-container pt-2">
+            <Spin
+              spinning={isLoadingExpensesChart}
+              indicator={<LoadingOutlined style={{ fontSize: 32, color: 'var(--color-blue-500)' }} spin />}
+              size="large"
             >
-                {!isLoadingIncomesChart && (!filtersApplied || (incomesCategories.length === 0 && data1Income.length === 0 && data2Income.length === 0)) ? (
-                  !filtersApplied ? (
-                    <div className='flex-center' style={{ minHeight: '300px', width: '100%', color: '#999' }}>
-                      Apply filters to view data
-                    </div>
+              {!isLoadingExpensesChart &&
+              (!filtersApplied ||
+                (expensesCategories.length === 0 && data1.length === 0 && data2.length === 0)) ? (
+                <div className="flex items-center justify-center min-h-[300px]">
+                  {!filtersApplied ? (
+                    <p className="text-sm text-black-300">Apply filters to view data</p>
                   ) : (
-                    <div className='flex-center h-full' style={{ minHeight: '300px', width: '100%' }}>
-                      <Empty description="No data available for the selected period" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                    </div>
-                  )
-                ) : chartTypeIncome === 'categories-pie' ? (
+                    <Empty
+                      description="No data available for the selected period"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </div>
+              ) : chartType === 'categories-pie' ? (
                 <PieChart
-                    {...settingsCategoriesPieIncome}
-                    sx={{
+                  {...settingsCategoriesPie}
+                  sx={{
                     '& .MuiPieArcLabel-root': {
-                        textAnchor: 'middle',
-                        dominantBaseline: 'middle',
-                        fontSize: 12,
-                    }
-                    }}
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle',
+                      fontSize: 12,
+                    },
+                  }}
                 />
-                ) : chartTypeIncome === 'categories-bar' ? (
+              ) : chartType === 'categories-bar' ? (
                 <BarChart
-                    xAxis={[{ 
-                    data: incomesCategories,
-                    colorMap: {
-                        type: "ordinal",
+                  xAxis={[
+                    {
+                      data: expensesCategories,
+                      colorMap: {
+                        type: 'ordinal',
+                        values: expensesCategories,
+                        colors: expensesCategoriesColors,
+                      },
+                    },
+                  ]}
+                  series={[{ data: expensesAmountByCategory }]}
+                  height={300}
+                />
+              ) : chartType === 'subcategories-pie' ? (
+                <PieChart
+                  {...settingsSubcategoriesPie}
+                  sx={{
+                    '& .MuiPieArcLabel-root': {
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle',
+                      fontSize: 12,
+                    },
+                  }}
+                />
+              ) : chartType === 'subcategories-bar' ? (
+                <BarChart
+                  xAxis={[
+                    {
+                      data: data2.map((item) => item.label),
+                      colorMap: {
+                        type: 'ordinal',
+                        values: data2.map((item) => item.label),
+                        colors: data2.map((item) => item.color),
+                      },
+                    },
+                  ]}
+                  series={[{ data: data2.map((item) => item.value) }]}
+                  height={300}
+                />
+              ) : (
+                <BarChart
+                  xAxis={[
+                    {
+                      data: expensesCategories,
+                      colorMap: {
+                        type: 'ordinal',
+                        values: expensesCategories,
+                        colors: expensesCategoriesColors,
+                      },
+                    },
+                  ]}
+                  series={[{ data: expensesAmountByCategory }]}
+                  height={300}
+                />
+              )}
+            </Spin>
+          </div>
+        </div>
+
+        {/* Incomes Breakdown */}
+        <div className="bg-white-200 border border-white-500 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-shadow duration-300 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl text-blue-500">Incomes Breakdown</h3>
+            <TreeSelect
+              defaultValue="categories-bar"
+              value={chartTypeIncome}
+              key={chartTypeIncome}
+              prefix={
+                chartTypeIncome.split('-')[0].charAt(0).toUpperCase() +
+                chartTypeIncome.split('-')[0].slice(1).toLowerCase()
+              }
+              style={{ width: 180 }}
+              onChange={(e) => setChartTypeIncome(e)}
+              placeholder="Select Chart Type"
+              treeDefaultExpandAll
+              treeData={[
+                {
+                  label: 'Categories',
+                  title: 'Categories',
+                  value: 'categories',
+                  selectable: false,
+                  children: [
+                    { title: 'Bar', value: 'categories-bar' },
+                    { title: 'Pie', value: 'categories-pie' },
+                  ],
+                },
+                {
+                  label: 'Subcategories',
+                  title: 'Subcategories',
+                  value: 'subcategories',
+                  selectable: false,
+                  children: [
+                    { title: 'Bar', value: 'subcategories-bar' },
+                    { title: 'Pie', value: 'subcategories-pie' },
+                  ],
+                },
+              ]}
+            />
+          </div>
+          <Divider className="my-1 border-white-500" />
+          <div className="chart-container pt-2">
+            <Spin
+              spinning={isLoadingIncomesChart}
+              indicator={<LoadingOutlined style={{ fontSize: 32, color: 'var(--color-blue-500)' }} spin />}
+              size="large"
+            >
+              {!isLoadingIncomesChart &&
+              (!filtersApplied ||
+                (incomesCategories.length === 0 && data1Income.length === 0 && data2Income.length === 0)) ? (
+                <div className="flex items-center justify-center min-h-[300px]">
+                  {!filtersApplied ? (
+                    <p className="text-sm text-black-300">Apply filters to view data</p>
+                  ) : (
+                    <Empty
+                      description="No data available for the selected period"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </div>
+              ) : chartTypeIncome === 'categories-pie' ? (
+                <PieChart
+                  {...settingsCategoriesPieIncome}
+                  sx={{
+                    '& .MuiPieArcLabel-root': {
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle',
+                      fontSize: 12,
+                    },
+                  }}
+                />
+              ) : chartTypeIncome === 'categories-bar' ? (
+                <BarChart
+                  xAxis={[
+                    {
+                      data: incomesCategories,
+                      colorMap: {
+                        type: 'ordinal',
                         values: incomesCategories,
                         colors: incomesCategoriesColors,
+                      },
                     },
-                    }]}
-                    series={[{data: incomesAmountByCategory}]}
-                    height={300}
+                  ]}
+                  series={[{ data: incomesAmountByCategory }]}
+                  height={300}
                 />
-                ) : chartTypeIncome === 'subcategories-pie' ? (
+              ) : chartTypeIncome === 'subcategories-pie' ? (
                 <PieChart
-                    {...settingsSubcategoriesPieIncome}
-                    sx={{
+                  {...settingsSubcategoriesPieIncome}
+                  sx={{
                     '& .MuiPieArcLabel-root': {
-                        textAnchor: 'middle',
-                        dominantBaseline: 'middle',
-                        fontSize: 12,
-                    }
-                    }}
-                />
-                ) : chartTypeIncome === 'subcategories-bar' ? (
-                <BarChart
-                    xAxis={[{ 
-                    data: data2Income.map(item => item.label),
-                    colorMap: {
-                        type: "ordinal",
-                        values: data2Income.map(item => item.label),
-                        colors: data2Income.map(item => item.color),
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle',
+                      fontSize: 12,
                     },
-                    }]}
-                    series={[{data: data2Income.map(item => item.value)}]}
-                    height={300}
+                  }}
                 />
-                ) : (
+              ) : chartTypeIncome === 'subcategories-bar' ? (
                 <BarChart
-                    xAxis={[{ 
-                    data: incomesCategories,
-                    colorMap: {
-                        type: "ordinal",
+                  xAxis={[
+                    {
+                      data: data2Income.map((item) => item.label),
+                      colorMap: {
+                        type: 'ordinal',
+                        values: data2Income.map((item) => item.label),
+                        colors: data2Income.map((item) => item.color),
+                      },
+                    },
+                  ]}
+                  series={[{ data: data2Income.map((item) => item.value) }]}
+                  height={300}
+                />
+              ) : (
+                <BarChart
+                  xAxis={[
+                    {
+                      data: incomesCategories,
+                      colorMap: {
+                        type: 'ordinal',
                         values: incomesCategories,
                         colors: incomesCategoriesColors,
+                      },
                     },
-                    }]}
-                    series={[{data: incomesAmountByCategory}]}
-                    height={300}
+                  ]}
+                  series={[{ data: incomesAmountByCategory }]}
+                  height={300}
                 />
-                )}
-            </Spin>                 
+              )}
+            </Spin>
           </div>
         </div>
       </div>
     </div>
-    </>);
+  );
 }
