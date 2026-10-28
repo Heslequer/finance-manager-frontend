@@ -4,10 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { expensesApiService } from '../../services/api/expenses/expenses.api';
 import { categoriesApiService } from '../../services/api/categories/categories.api';
 import { incomesApiService } from '../../services/api/incomes/incomes.api';
-import React from 'react';
 import chroma from 'chroma-js';
 import { type ColourOption } from './docs/data';
-import { DatePicker, Input, Space, Button, Radio, Upload, Drawer, message, Spin, Select as AntdSelect, Form } from 'antd';
+import { DatePicker, Input, Button, Radio, Upload, Drawer, message, Spin, Select as AntdSelect, Form } from 'antd';
 import type { UploadFile } from 'antd';
 
 /** Existing bucket object path, set when receipts are loaded from Storage */
@@ -16,7 +15,7 @@ import { UploadOutlined } from '@ant-design/icons';
 import Select, { type StylesConfig } from 'react-select';
 import { subcategoriesApiService } from '../../services/api/subcategories/subcategories.api';
 import type { DataType } from '../../pages/reports/transactions/transactions';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { receiptsService } from '../../services/receipts/receipts.service';
 import { supabase } from '../../lib/supabase';
 import { creditCardsApiService } from '../../services/api/credit-cards/credit-cards.api';

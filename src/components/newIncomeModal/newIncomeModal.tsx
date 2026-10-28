@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import './newIncomeModal.scss'
 import CurrencyInput from 'react-currency-input-field';
 import { useState, useEffect } from 'react';
@@ -150,7 +151,7 @@ export default function NewExpenseModal({onClose, income}: ModalProps) {
             />
             <label htmlFor="date">Date</label>
             <Space direction="vertical" className="my-1">
-              <DatePicker value={date} onChange={(e) => setDate(e)}  className="py-1 input-date"/>
+              <DatePicker value={date ? dayjs(date) : null} onChange={(_d, dateString) => setDate(typeof dateString === 'string' ? dateString : (dateString?.[0] ?? ''))} className="py-1 input-date"/>
             </Space>
             <label htmlFor="description">Description</label>
             <Input value={income?.description ?? ""} size="large" placeholder="Description" className="mt-1" onChange={(e) => setDescription(e.target.value)}/>

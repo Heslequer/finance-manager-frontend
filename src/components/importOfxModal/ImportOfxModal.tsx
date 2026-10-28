@@ -54,8 +54,6 @@ export default function ImportOfxModal({
   const [expenseSubcategories, setExpenseSubcategories] = useState<Subcategory[]>([]);
   const [incomeSubcategories, setIncomeSubcategories] = useState<Subcategory[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
-
-  const selectedCreditCardId = Form.useWatch('creditCard', form);
   const expenseCategoryId = Form.useWatch('expenseCategoryId', form);
   const incomeCategoryId = Form.useWatch('incomeCategoryId', form);
 
